@@ -34,13 +34,13 @@ namespace face
     
     bool LoopThread::start() {
         // 如果已经在运行，返回false
-        if (mRunning.load()) {
+        if (mRunning.load() || mStartRunning.load()) {
             return false;
         }
-        
+        mStartRunning.store(true);
         // 重置停止标志和请求ID
         mStopRequested.store(false);
-        mCurrentRequestId.store(-1);
+        mCurrentRequestId.store(0);
         
         // 创建并启动线程
         mThread = std::thread(&LoopThread::threadMain, this);
@@ -70,6 +70,10 @@ namespace face
     
     bool LoopThread::isRunning() const {
         return mRunning.load();
+    }
+
+    bool LoopThread::isStartRunning() const {
+        return mStartRunning.load();
     }
     
     bool LoopThread::isStopRequested() const {
@@ -113,6 +117,7 @@ namespace face
     
     void LoopThread::threadMain() {
         // 标记线程已启动
+        mStartRunning.store(false);
         mRunning.store(true);
         
         // 调用启动监听器

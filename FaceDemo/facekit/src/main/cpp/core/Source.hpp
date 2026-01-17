@@ -15,16 +15,15 @@ namespace face {
     class Source {
     public:
         virtual ~Source() = default;
-        virtual std::shared_ptr<PixelData> getPixel() = 0;
+        virtual std::shared_ptr<PixelData> getPixelData() = 0;
         virtual Size<uint16_t> getSize() = 0;
 
         virtual bool isDataAvailable() { return false; };
-
-        virtual void setAvailableListener(DataListener<Size<uint16_t>, PixelData> listener) {
+        virtual void setDataAvailableListener(DataListener<std::shared_ptr<PixelData>> listener) {
             mDataListener = std::move(listener);
         };
-    private:
-        DataListener<Size<uint16_t>, PixelData> mDataListener;
+    protected:
+        DataListener<std::shared_ptr<PixelData>> mDataListener;
     };
 }
 #endif //FACEDEMO_SOURCE_HPP

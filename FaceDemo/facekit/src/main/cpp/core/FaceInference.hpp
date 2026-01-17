@@ -26,7 +26,7 @@ namespace face
         uint32_t mRequestId{0};
         std::shared_ptr<Source> mSource;
         std::shared_ptr<PixelData> mCurrentPixel;
-        std::shared_ptr<LimitQueue<PixelData>> mDataQueue;
+        std::shared_ptr<LimitQueue<std::shared_ptr<PixelData>>> mDataQueue;
         std::shared_ptr<LoopThread> mThread;
         MNN::Session* mSession{ nullptr };
         std::unique_ptr<MNN::Interpreter> mInterpreter;

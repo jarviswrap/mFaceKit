@@ -10,18 +10,18 @@
 namespace face
 {
     FaceInference::FaceInference() {
-        mDataQueue = std::make_shared<LimitQueue<PixelData>>();
+        mDataQueue = std::make_shared<LimitQueue<std::shared_ptr<PixelData>>>();
         mDataQueue->setMaxSize(2);
         mThread = std::make_shared<LoopThread>();
         mThread->setLoopMode(LoopMode::REQUEST);
-        std::weak_ptr<LimitQueue<PixelData>> weakPtr(mDataQueue);
+        std::weak_ptr<LimitQueue<std::shared_ptr<PixelData>>> weakPtr(mDataQueue);
 
-        PixelData cacheData;
+        std::shared_ptr<PixelData> cacheData;
         mThread->setOnLoopListener([weakPtr, &cacheData](uint32_t requestId) -> void {
             LOGE("onLoop requestId:%u", requestId);
             if (auto dataQueue = weakPtr.lock()) {
                 if (dataQueue->pop(cacheData) == Error::None) {
-                    LOGE("onDataAvailable:%zu", cacheData.getSize());
+                    LOGE("onDataAvailable:%zu", cacheData->getPixelSize());
                 }
             }
         });
@@ -60,7 +60,7 @@ namespace face
             mInterpreter.reset();
         }
         if (mSource) {
-            mSource->setAvailableListener(nullptr);
+            mSource->setDataAvailableListener(nullptr);
         }
         return Error::None;
     }
@@ -72,10 +72,10 @@ namespace face
         if (source) {
             mSource = source;
             mThread->start();
-            std::weak_ptr<LimitQueue<PixelData>> weakPtr(mDataQueue);
+            std::weak_ptr<LimitQueue<std::shared_ptr<PixelData>>> weakPtr(mDataQueue);
             std::weak_ptr<LoopThread> weakThread(mThread);
             auto requestId = ++mRequestId;
-            source->setAvailableListener([weakPtr, weakThread, requestId] (const Size<uint16_t>& size, const PixelData& pixelData) -> void {
+            source->setDataAvailableListener([weakPtr, weakThread, requestId] (const std::shared_ptr<PixelData>& pixelData) -> void {
                 if (auto dataQueue = weakPtr.lock()) {
                     dataQueue->push(pixelData);
                 }
@@ -90,7 +90,7 @@ namespace face
 
     Error FaceInference::stop() {
         if (mSource) {
-            mSource->setAvailableListener(nullptr);
+            mSource->setDataAvailableListener(nullptr);
         }
         mThread->stop();
         return Error::None;

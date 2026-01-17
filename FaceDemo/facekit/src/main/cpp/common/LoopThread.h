@@ -97,7 +97,12 @@ namespace face
          * 检查线程是否正在运行
          */
         bool isRunning() const;
-        
+
+        /**
+         * 检查线程是否正在准备运行
+         */
+        bool isStartRunning() const;
+
         /**
          * 检查是否已请求停止
          */
@@ -152,6 +157,7 @@ namespace face
         
         // 线程状态
         std::atomic<bool> mRunning{false};
+        std::atomic<bool> mStartRunning{false};
         std::atomic<bool> mStopRequested{false};
         
         // 监听器

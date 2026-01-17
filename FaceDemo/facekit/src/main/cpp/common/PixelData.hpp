@@ -6,32 +6,41 @@
 #define FACEDEMO_PIXELDATA_HPP
 #include <vector>
 #include <cstring>
-
+#include "common/Size.hpp"
 namespace face
 {
     enum class PixelFormat: uint8_t {
-        I420P, NV21, ARGB, RGBA, RGB
+        I420P, NV21, ARGB, RGBA, RGB, BGR
     };
 
     class PixelData
     {
     public:
         PixelData();
-        
         virtual ~PixelData() = default;
-
         explicit PixelData(PixelFormat format);
-        
         PixelData(PixelFormat format, size_t capacity);
-        
         PixelData(const PixelData& other);
-        
         PixelData& operator=(const PixelData& other);
-        
         PixelData(PixelData&& other) noexcept;
-        
         PixelData& operator=(PixelData&& other) noexcept;
+        /**
+         * 比较两个PixelData对象是否相等
+         * 比较格式、分辨率和像素数据
+         */
+        bool operator==(const PixelData& other) const;
         
+        /**
+         * 比较两个PixelData对象是否不相等
+         */
+        bool operator!=(const PixelData& other) const {
+            return !(*this == other);
+        }
+        
+        void setLabel(const std::string& label) {
+            mLabel = label;
+        }
+
         void setFormat(PixelFormat format) {
             mFormat = format;
         }
@@ -40,90 +49,39 @@ namespace face
             return mFormat;
         }
         
-        const char* getFormatString() const {
-            switch (mFormat) {
-                case PixelFormat::I420P:
-                    return "I420P";
-                case PixelFormat::NV21:
-                    return "NV21";
-                case PixelFormat::ARGB:
-                    return "ARGB";
-                case PixelFormat::RGBA:
-                    return "RGBA";
-                case PixelFormat::RGB:
-                    return "RGB";
-                default:
-                    return "UNKNOWN";
-            }
-        }
+        const char* getFormatString() const;
 
-        uint8_t getBytesPerPixel() const {
-            switch (mFormat) {
-                case PixelFormat::RGB:
-                    return 3;
-                case PixelFormat::ARGB:
-                case PixelFormat::RGBA:
-                    return 4;
-                case PixelFormat::I420P:
-                case PixelFormat::NV21:
-                    return 1; // 平面格式，这里返回1
-                default:
-                    return 0;
-            }
-        }
+        static float getBytesPerPixel(PixelFormat format);
         
         void allocate(const uint8_t* data, size_t size);
         
         void allocate(size_t size);
         
-        void clear() {
-            mPixels.clear();
-        }
-
-        void reset() {
-            mPixels.clear();
-        }
-
-        void shrinkToFit() {
-            mPixels.shrink_to_fit();
-        }
-        
-        uint8_t* getPixels() {
-            return mPixels.empty() ? nullptr : mPixels.data();
-        }
+        void clear();
 
         const uint8_t* getPixels() const {
-            return mPixels.empty() ? nullptr : mPixels.data();
+            return mPixels;
         }
 
-        size_t getSize() const {
-            return mPixels.size();
+        uint32_t getPixelSize() const {
+            return mPixelSize;
         }
 
-        size_t getCapacity() const {
-            return mPixels.capacity();
+        uint32_t getCapacity() const {
+            return mCapacity;
         }
 
         bool isEmpty() const {
-            return mPixels.empty();
+            return mPixelSize == 0;
         }
  
-        void reserve(size_t capacity) {
-            mPixels.reserve(capacity);
-        }
+        void reserve(size_t capacity);
 
-        uint8_t getPixelByte(size_t index) const {
-            if (index < mPixels.size()) {
-                return mPixels[index];
-            }
-            return 0;
-        }
+        void setPixelData(uint8_t* pixel, uint32_t width, uint32_t height, PixelFormat format, uint32_t size = 0);
 
-        void setPixelByte(size_t index, uint8_t value) {
-            if (index < mPixels.size()) {
-                mPixels[index] = value;
-            }
-        }
+        uint8_t getPixelByte(size_t index) const;
+
+        void setPixelByte(size_t index, uint8_t value);
 
         void copyPixels(uint8_t* dest, size_t destSize) const;
 
@@ -131,51 +89,24 @@ namespace face
 
         void append(const uint8_t* data, size_t size);
 
-        bool isValidFormat() const {
-            return mFormat == PixelFormat::I420P ||
-                   mFormat == PixelFormat::NV21 ||
-                   mFormat == PixelFormat::ARGB ||
-                   mFormat == PixelFormat::RGBA ||
-                   mFormat == PixelFormat::RGB;
-        }
-
-        bool isPlanarFormat() const {
-            return mFormat == PixelFormat::I420P || 
-                   mFormat == PixelFormat::NV21;
-        }
-
         bool hasAlpha() const {
             return mFormat == PixelFormat::ARGB || 
                    mFormat == PixelFormat::RGBA;
         }
 
-        size_t calculateDataSize(uint32_t width, uint32_t height) const {
-            if (width == 0 || height == 0) {
-                return 0;
-            }
-            
-            switch (mFormat) {
-                case PixelFormat::RGB:
-                    return width * height * 3;
-                case PixelFormat::ARGB:
-                case PixelFormat::RGBA:
-                    return width * height * 4;
-                case PixelFormat::NV21:
-                    return width * height * 3 / 2;
-                case PixelFormat::I420P:
-                    return width * height * 3 / 2;
-                default:
-                    return 0;
-            }
-        }
+        uint32_t calculateDataSize() const;
 
-        bool validateDataSize(uint32_t width, uint32_t height) const {
-            return getSize() == calculateDataSize(width, height);
-        }
-        
+        bool validateDataSize() const;
+
+        const Size<uint16_t>& getResolution() const { return mResolution; };
     private:
-        PixelFormat mFormat;
-        std::vector<uint8_t> mPixels;
+        PixelFormat mFormat{PixelFormat::I420P};
+        uint8_t *mPixels{nullptr};
+        uint32_t mPixelSize{0};
+        uint32_t mCapacity{0};
+        bool mNeedFreePixel{false};
+        Size<uint16_t> mResolution;
+        std::string mLabel{""};
     };
 
 } // face

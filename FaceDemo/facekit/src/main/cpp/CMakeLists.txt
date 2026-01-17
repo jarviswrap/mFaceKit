@@ -13,8 +13,8 @@ project("facekit")
 
 # Collect source files using glob
 file(GLOB_RECURSE COMMON_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/common/*.cpp")
-file(GLOB_RECURSE ENGINE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/engine/*.cpp")
 file(GLOB_RECURSE RENDER_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/render/*.cpp")
+file(GLOB_RECURSE ENGINE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/core/*.cpp")
 
 # Import prebuilt libraries from jniLibs
 add_library(MNN SHARED IMPORTED)
