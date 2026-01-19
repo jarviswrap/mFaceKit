@@ -122,7 +122,7 @@ fun SplashScreen(
                 fontSize = 32.sp
             )
             Text(
-                text = "NativeMessage: ${FaceKit().stringFromJNI()}",
+                text = "NativeMessage: ${FaceKit.Instance.stringFromJNI()}",
                 fontSize = 14.sp,
                 modifier = Modifier.padding(top = 16.dp)
             )

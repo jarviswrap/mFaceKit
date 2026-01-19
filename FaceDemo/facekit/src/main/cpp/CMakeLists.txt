@@ -12,9 +12,11 @@ cmake_minimum_required(VERSION 3.22.1)
 project("facekit")
 
 # Collect source files using glob
+file(GLOB_RECURSE ANDROID_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/android/*.cpp")
 file(GLOB_RECURSE COMMON_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/common/*.cpp")
 file(GLOB_RECURSE RENDER_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/render/*.cpp")
-file(GLOB_RECURSE ENGINE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/core/*.cpp")
+file(GLOB_RECURSE CORE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/core/*.cpp")
+file(GLOB_RECURSE IO_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/io/*.cpp")
 
 # Import prebuilt libraries from jniLibs
 add_library(MNN SHARED IMPORTED)
@@ -27,9 +29,14 @@ set_target_properties(MNNOpenCV PROPERTIES
 
 add_library(${CMAKE_PROJECT_NAME} SHARED
         ${COMMON_SOURCES}
-        ${ENGINE_SOURCES}
         ${RENDER_SOURCES}
-        ${CMAKE_CURRENT_SOURCE_DIR}/facekit.cpp)
+        ${CORE_SOURCES}
+        ${IO_SOURCES}
+        ${CMAKE_CURRENT_SOURCE_DIR}/ImagePreviewer.cpp
+        )
+if(ANDROID)
+    target_sources(${CMAKE_PROJECT_NAME} PRIVATE ${ANDROID_SOURCES})
+endif()
 
 target_include_directories(${CMAKE_PROJECT_NAME}
         PRIVATE

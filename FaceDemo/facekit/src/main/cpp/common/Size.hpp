@@ -10,7 +10,7 @@ namespace face
     class Size
     {
     public:
-        Size() {};
+        Size() = default;
 
         Size(T w, T h) : mWidth(w), mHeight(h) {};
 

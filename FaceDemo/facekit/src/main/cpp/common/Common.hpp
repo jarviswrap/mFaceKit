@@ -13,6 +13,8 @@ namespace face
     template<typename... T> using BoolListener = std::function<bool(const T &...)>;
     template<typename... T> using IntListener = std::function<int(const T &...)>;
 
+    template<typename T> using DataObtainer = std::function<T(uint32_t requestCode)>;
+
     enum class Error : int8_t
     {
         None             = 0,
@@ -20,6 +22,7 @@ namespace face
         Err_InvalidSource = -2,
         Err_InvalidInterpreter = -3,
         Err_EmptyQueue = -4,
+        Err_InvalidInput = -5,
     };
 }
 #endif //FACEDEMO_COMMON_HPP

@@ -2,7 +2,11 @@ package com.jarvis.facekit;
 
 import android.util.Log;
 
-public class FaceKit {
+import com.jarvis.facekit.egl.EGLDelegate;
+
+public enum FaceKit {
+    Instance;
+
     private static final String TAG = "FaceKitJava";
     // Used to load the 'facekit' library on application startup.
     static void loadGpuLibrary(String name) {
@@ -18,6 +22,11 @@ public class FaceKit {
         System.loadLibrary("MNNOpenCV");
     }
 
+    private final EGLDelegate mEGLDelegate = new EGLDelegate();
+
+    public EGLDelegate touchEGL() {
+        return mEGLDelegate;
+    }
     /**
      * A native method that is implemented by the 'facekit' native library,
      * which is packaged with this application.

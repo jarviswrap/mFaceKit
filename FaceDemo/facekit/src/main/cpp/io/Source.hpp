@@ -7,23 +7,21 @@
 
 #include <utility>
 
-#include "common/Size.hpp"
-#include "common/PixelData.hpp"
-#include "common/Common.hpp"
+#include "../common/Common.hpp"
 
 namespace face {
+    template<typename T>
     class Source {
     public:
         virtual ~Source() = default;
-        virtual std::shared_ptr<PixelData> getPixelData() = 0;
-        virtual Size<uint16_t> getSize() = 0;
+        virtual T getNextData() = 0;
 
         virtual bool isDataAvailable() { return false; };
-        virtual void setDataAvailableListener(DataListener<std::shared_ptr<PixelData>> listener) {
+        virtual void setDataAvailableListener(DataListener<T> listener) {
             mDataListener = std::move(listener);
         };
     protected:
-        DataListener<std::shared_ptr<PixelData>> mDataListener;
+        DataListener<T> mDataListener;
     };
 }
 #endif //FACEDEMO_SOURCE_HPP

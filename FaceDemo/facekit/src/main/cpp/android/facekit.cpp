@@ -1,7 +1,7 @@
 #include <jni.h>
 #include <string>
 #include "engine/FaceInference.hpp"
-#include "common/AndroidUtils.hpp"
+#include "android/AndroidUtils.hpp"
 
 std::shared_ptr<face::FaceInference> mInference;
 

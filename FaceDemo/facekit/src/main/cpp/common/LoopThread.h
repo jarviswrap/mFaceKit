@@ -10,7 +10,7 @@
 #include <functional>
 #include <mutex>
 #include <condition_variable>
-#include "Common.hpp"
+#include "common/Common.hpp"
 
 namespace face
 {
@@ -169,7 +169,7 @@ namespace face
         std::atomic<LoopMode> mLoopMode{LoopMode::INTERVAL};
         
         // 循环间隔（毫秒）
-        std::atomic<uint32_t> mLoopIntervalMs{0};
+        std::atomic<uint32_t> mLoopIntervalMs{50};
         
         // 请求ID（用于REQUEST模式）
         // -1表示无请求，>=0表示有效请求

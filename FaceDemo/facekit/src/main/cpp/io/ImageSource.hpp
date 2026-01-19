@@ -5,23 +5,22 @@
 #ifndef FACEDEMO_IMAGESOURCE_HPP
 #define FACEDEMO_IMAGESOURCE_HPP
 #include "Source.hpp"
+#include "common/PixelData.hpp"
 #include "common/LoopThread.h"
-#include "common/ObserverbleData.hpp"
 #include <vector>
 
 namespace face
 {
 
-    class ImageSource: Source
+    class ImageSource: Source<std::shared_ptr<PixelData>>
     {
 
     public:
         explicit ImageSource(const std::string& imagePath);
         ~ImageSource() noexcept override;
         void requestLoadImage(const std::string& imagePath);
-        const std::string& getImagePath(uint32_t index);
-        std::shared_ptr<PixelData> getPixelData() override;
-        Size<uint16_t> getSize() override;
+        std::string getImagePath(uint32_t index);
+        std::shared_ptr<PixelData> getNextData() override;
         bool isDataAvailable() override;
     private:
         std::shared_ptr<LoopThread> mThread;

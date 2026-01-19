@@ -2,14 +2,14 @@
 // Created by wilbert on 2026/1/15.
 //
 
-#include "FaceInference.hpp"
+#include "ImageProcessor.hpp"
 #include "common/Log.hpp"
 
 #include <memory>
 
 namespace face
 {
-    FaceInference::FaceInference() {
+    ImageProcessor::ImageProcessor() {
         mDataQueue = std::make_shared<LimitQueue<std::shared_ptr<PixelData>>>();
         mDataQueue->setMaxSize(2);
         mThread = std::make_shared<LoopThread>();
@@ -27,11 +27,11 @@ namespace face
         });
     }
 
-    FaceInference::~FaceInference() {
+    ImageProcessor::~ImageProcessor() {
         release();
     }
 
-    Error FaceInference::init(const std::string &model, int forward, int numThread) {
+    Error ImageProcessor::init(const std::string &model, int forward, int numThread) {
         auto interpreter = MNN::Interpreter::createFromFile(model.c_str());
         if (interpreter) {
             mInterpreter.reset(interpreter);
@@ -50,7 +50,7 @@ namespace face
         return Error::Err_ModelInvalid;
     }
 
-    Error FaceInference::release() {
+    Error ImageProcessor::release() {
         if (mSession) {
             mInterpreter->releaseSession(mSession);
             mSession = nullptr;
@@ -65,7 +65,7 @@ namespace face
         return Error::None;
     }
 
-    Error FaceInference::start(const std::shared_ptr<Source>& source) {
+    Error ImageProcessor::start(const std::shared_ptr<Source<PixelData>>& source) {
         if (!mInterpreter) {
             return Error::Err_InvalidInterpreter;
         }
@@ -88,7 +88,7 @@ namespace face
         return Error::Err_InvalidSource;
     }
 
-    Error FaceInference::stop() {
+    Error ImageProcessor::stop() {
         if (mSource) {
             mSource->setDataAvailableListener(nullptr);
         }
