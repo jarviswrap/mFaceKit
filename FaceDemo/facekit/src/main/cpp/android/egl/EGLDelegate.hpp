@@ -19,6 +19,8 @@ namespace face {
     class EGLDelegate {
     public:
         static EGLDelegate& getInstance();
+        EGLDelegate(const EGLDelegate&) = delete;
+        EGLDelegate& operator=(const EGLDelegate&) = delete;
 
         int64_t createEGLEnvironment();
         std::shared_ptr<EGLEnvironment> getEGLEnvironment(int64_t environment_ptr);
@@ -27,13 +29,14 @@ namespace face {
         int64_t getSharedContext();
 
         int64_t createEGLSurfaceView(JNIEnv* env, jobject eglSurfaceView);
-        void onSurfaceViewDraw(int64_t surfaceview_ptr);
+        std::shared_ptr<EGLSurfaceView> getShowView(int64_t surfaceview_ptr);
+        void removeEGLShowView(int64_t surfaceview_ptr);
 
     private:
         EGLDelegate() = default;
         ~EGLDelegate() = default;
-        EGLDelegate(const EGLDelegate&) = delete;
-        EGLDelegate& operator=(const EGLDelegate&) = delete;
+
+
 
         std::mutex mMutex;
         std::unordered_map<int64_t, std::shared_ptr<EGLEnvironment>> mEnvironments;

@@ -14,9 +14,11 @@ import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.egl.EGLContext;
 import javax.microedition.khronos.egl.EGLDisplay;
 import javax.microedition.khronos.egl.EGLSurface;
+import javax.microedition.khronos.opengles.GL10;
 
 public class EGLSurfaceView extends GLSurfaceView {
     private final String TAG = "EGLSurfaceView";
+    private long mShowViewPtr = 0;
     private final EGLEnvironment mEglEnvironment = FaceKit.Instance.touchEGL();
 
     public EGLSurfaceView(Context context) {
@@ -33,9 +35,14 @@ public class EGLSurfaceView extends GLSurfaceView {
     public void surfaceDestroyed(SurfaceHolder holder) {
         super.surfaceDestroyed(holder);
         mEglEnvironment.release();
+        if (mShowViewPtr != 0) {
+            nativeDestroyShowView(mShowViewPtr);
+            mShowViewPtr = 0;
+        }
     }
 
     private void initialize() {
+        mShowViewPtr = nativeCreateShowView();
         // 设置 EGL 配置
         setEGLConfigChooser(new EGLConfigSelector()); // EGLConfig真正的选择选择逻辑在cpp代码中
 
@@ -44,7 +51,7 @@ public class EGLSurfaceView extends GLSurfaceView {
             @Override
             public EGLContext createContext(EGL10 egl, EGLDisplay display, EGLConfig eglConfig) {
                 if (mEglEnvironment.createEGLContext(0, EGLEnvironment.EGLScene.BACKGROUND_RENDER | EGLEnvironment.EGLScene.DISPLAY) &&
-                    mEglEnvironment.createEGLPBufferSurface(4, 4, true)) { //先创建小的PBuffer避免报错
+                    mEglEnvironment.createEGLPBufferSurface(4, 4, true)) { //1. 先创建小的PBufferSurface避免报错
                     return egl.eglGetCurrentContext();
                 }
                 return EGL10.EGL_NO_CONTEXT;
@@ -68,7 +75,7 @@ public class EGLSurfaceView extends GLSurfaceView {
                     nativeSurface = (Surface) nativeWindow;
                     Log.w(TAG, "[createWindowSurface] nativeWindow is Surface");
                 }
-                if (mEglEnvironment.createEGLWindowSurface(nativeSurface, true)) {
+                if (mEglEnvironment.createEGLWindowSurface(nativeSurface, true)) { //2. 再创建WindowSurface用于上屏显示
                     return egl.eglGetCurrentSurface(EGL10.EGL_DRAW);
                 }
                 return EGL10.EGL_NO_SURFACE;
@@ -79,7 +86,26 @@ public class EGLSurfaceView extends GLSurfaceView {
                 mEglEnvironment.destroyEGLSurface();
             }
         });
+        setRenderMode(RENDERMODE_WHEN_DIRTY);
+        setRenderer(new Renderer() {
+            @Override
+            public void onDrawFrame(GL10 gl) {
+                nativeOnShowViewDraw(mShowViewPtr);
+            }
+
+            @Override
+            public void onSurfaceChanged(GL10 gl, int width, int height) {
+                Log.e(TAG, "onSurfaceChanged:" + width + "x" + height);
+            }
+
+            @Override
+            public void onSurfaceCreated(GL10 gl, EGLConfig config) {
+                Log.e(TAG, "onSurfaceCreated");
+            }
+        });
     }
 
-
+    private native long nativeCreateShowView();
+    private native void nativeDestroyShowView(long showViewPtr);
+    private native void nativeOnShowViewDraw(long showViewPtr);
 }

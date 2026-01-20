@@ -131,11 +131,11 @@ public class EGLEnvironment {
             Log.e(TAG, "release when init failed");
             return;
         }
-        nativeRelease(mEGLEnvironment);
+        destroyEGLEnvironment(mEGLEnvironment);
     }
 
     private native long createEGLEnvironment();
-    private native void nativeRelease(long environmentPtr);
+    private native void destroyEGLEnvironment(long environmentPtr);
 
     private native long nativeEGLCreateContext(long environmentPtr, long sharedContextPtr, int eglScene);
     private native boolean nativeEGLDestroyContext(long environmentPtr);

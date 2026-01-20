@@ -17,7 +17,7 @@ Java_com_jarvis_facekit_egl_EGLEnvironment_createEGLEnvironment(JNIEnv *env, job
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_jarvis_facekit_egl_EGLEnvironment_nativeRelease(JNIEnv *env, jobject thiz, jlong environment_ptr) {
+Java_com_jarvis_facekit_egl_EGLEnvironment_destroyEGLEnvironment(JNIEnv *env, jobject thiz, jlong environment_ptr) {
     EGLDelegate::getInstance().removeEGLEnvironment(environment_ptr);
 }
 
@@ -121,4 +121,29 @@ Java_com_jarvis_facekit_egl_EGLEnvironment_getEGLSurfaceHeight(JNIEnv *env,
         return eglEnv->getEGLSurfaceHeight();
     }
     return 0;
+}
+
+extern "C"
+JNIEXPORT jlong JNICALL
+Java_com_jarvis_facekit_egl_EGLSurfaceView_nativeCreateShowView(JNIEnv *env, jobject thiz) {
+    return EGLDelegate::getInstance().createEGLSurfaceView(env, thiz);
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_jarvis_facekit_egl_EGLSurfaceView_nativeDestroyShowView(JNIEnv *env,
+                                                                 jobject thiz,
+                                                                 jlong show_view_ptr) {
+    EGLDelegate::getInstance().removeEGLShowView(show_view_ptr);
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_jarvis_facekit_egl_EGLSurfaceView_nativeOnShowViewDraw(JNIEnv *env,
+                                                                jobject thiz,
+                                                                jlong show_view_ptr) {
+    auto showView = EGLDelegate::getInstance().getShowView(show_view_ptr);
+    if (showView) {
+        showView->consumeData();
+    }
 }

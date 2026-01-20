@@ -12,7 +12,6 @@ namespace face{
     class Consumer {
     public:
         virtual ~Consumer() = default;
-        virtual T getNextData() = 0;
 
         Error requestConsume(uint32_t requestId = 1) {
             mRequestId.store(requestId);

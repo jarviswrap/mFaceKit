@@ -51,7 +51,26 @@ namespace face {
     }
 
     int64_t EGLDelegate::createEGLSurfaceView(JNIEnv *env, jobject eglSurfaceView) {
-        return 0;
+        std::lock_guard<std::mutex> lock(mMutex);
+        auto showView = std::make_shared<EGLSurfaceView>(env, eglSurfaceView);
+        auto ptr = (int64_t) showView.get();
+        mSurfaceViews.emplace(ptr, showView);
+        return ptr;
     }
+
+    std::shared_ptr<EGLSurfaceView> EGLDelegate::getShowView(int64_t surfaceview_ptr) {
+        std::lock_guard<std::mutex> lock(mMutex);
+        auto it = mSurfaceViews.find(surfaceview_ptr);
+        if (it != mSurfaceViews.end()) {
+            return it->second;
+        }
+        return nullptr;
+    }
+
+    void EGLDelegate::removeEGLShowView(int64_t surfaceview_ptr) {
+        std::lock_guard<std::mutex> lock(mMutex);
+        mSurfaceViews.erase(surfaceview_ptr);
+    }
+
 
 } // face

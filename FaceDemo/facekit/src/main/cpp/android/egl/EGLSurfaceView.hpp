@@ -17,6 +17,10 @@ namespace face {
 
         Error onRequestConsume(uint32_t requestId) override;
         Error onConsumeData(PixelData data) override;
+
+        void release(JNIEnv *env);
+    private:
+        jobject mSurfaceView{nullptr};
     };
 
 } // face
