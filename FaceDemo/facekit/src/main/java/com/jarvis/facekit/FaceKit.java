@@ -2,7 +2,7 @@ package com.jarvis.facekit;
 
 import android.util.Log;
 
-import com.jarvis.facekit.egl.EGLDelegate;
+import com.jarvis.facekit.egl.EGLEnvironment;
 
 public enum FaceKit {
     Instance;
@@ -22,10 +22,8 @@ public enum FaceKit {
         System.loadLibrary("MNNOpenCV");
     }
 
-    private final EGLDelegate mEGLDelegate = new EGLDelegate();
-
-    public EGLDelegate touchEGL() {
-        return mEGLDelegate;
+    public EGLEnvironment touchEGL() {
+        return new EGLEnvironment();
     }
     /**
      * A native method that is implemented by the 'facekit' native library,

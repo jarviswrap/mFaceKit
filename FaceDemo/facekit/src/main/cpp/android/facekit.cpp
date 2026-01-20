@@ -1,9 +1,9 @@
 #include <jni.h>
 #include <string>
-#include "engine/FaceInference.hpp"
+//#include "engine/FaceInference.hpp"
 #include "android/AndroidUtils.hpp"
 
-std::shared_ptr<face::FaceInference> mInference;
+//std::shared_ptr<face::FaceInference> mInference;
 
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_jarvis_facekit_FaceKit_stringFromJNI(
@@ -20,8 +20,8 @@ Java_com_jarvis_facekit_FaceKit_setModelDir(
     if (!modelDir) {
         return;
     }
-    if (!mInference) {
-        mInference = std::make_shared<face::FaceInference>();
-    }
-    mInference->init(face::AndroidUtils::readStringUTF(env, modelDir));
+//    if (!mInference) {
+//        mInference = std::make_shared<face::FaceInference>();
+//    }
+//    mInference->init(face::AndroidUtils::readStringUTF(env, modelDir));
 }
