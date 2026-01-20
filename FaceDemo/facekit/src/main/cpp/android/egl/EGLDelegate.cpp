@@ -50,4 +50,8 @@ namespace face {
         return 0;
     }
 
+    int64_t EGLDelegate::createEGLSurfaceView(JNIEnv *env, jobject eglSurfaceView) {
+        return 0;
+    }
+
 } // face
