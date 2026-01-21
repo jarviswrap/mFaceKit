@@ -14,14 +14,14 @@ namespace face {
     class Source {
     public:
         virtual ~Source() = default;
-        virtual T getNextData() = 0;
+        virtual std::shared_ptr<T> getNextData() = 0;
 
         virtual bool isDataAvailable() { return false; };
-        virtual void setDataAvailableListener(DataListener<T> listener) {
+        virtual void setDataAvailableListener(DataListener<std::shared_ptr<T>> listener) {
             mDataListener = std::move(listener);
         };
     protected:
-        DataListener<T> mDataListener;
+        DataListener<std::shared_ptr<T>> mDataListener;
     };
 }
 #endif //FACEDEMO_SOURCE_HPP

@@ -9,18 +9,23 @@
 #include <jni.h>
 
 namespace face {
-
+    class EGLEnvironment;
+    class PixelRender;
     class EGLSurfaceView: public Consumer<PixelData> {
     public:
-        EGLSurfaceView(JNIEnv *env, jobject glsurfaceview);
+        EGLSurfaceView(JNIEnv *env, jobject glsurfaceview, int64_t environmentPtr);
         ~EGLSurfaceView() override;
 
         Error onRequestConsume(uint32_t requestId) override;
-        Error onConsumeData(PixelData data) override;
+        void onDestroy() override; // onRequestConsume和onDestroy都来自生产者线程
 
-        void release(JNIEnv *env);
+        Error onConsumeData(const std::shared_ptr<PixelData>& data) override; //onConsumeData来自消费者线程
     private:
         jobject mSurfaceView{nullptr};
+        jclass mSurfaceViewClass{nullptr};
+        jmethodID mRequestRenderMethodID{nullptr};
+        std::shared_ptr<EGLEnvironment> mEnvironment;
+        std::shared_ptr<PixelRender> mRender;
     };
 
 } // face

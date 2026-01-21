@@ -19,15 +19,19 @@ import javax.microedition.khronos.opengles.GL10;
 public class EGLSurfaceView extends GLSurfaceView {
     private final String TAG = "EGLSurfaceView";
     private long mShowViewPtr = 0;
-    private final EGLEnvironment mEglEnvironment = FaceKit.Instance.touchEGL();
+    private final EGLEnvironment mEglEnvironment;
 
     public EGLSurfaceView(Context context) {
         super(context);
+        mEglEnvironment = FaceKit.Instance.touchEGL();
+        mShowViewPtr = nativeCreateShowView(mEglEnvironment.getPtr());
         initialize();
     }
 
     public EGLSurfaceView(Context context, AttributeSet attrs) {
         super(context, attrs);
+        mEglEnvironment = FaceKit.Instance.touchEGL();
+        mShowViewPtr = nativeCreateShowView(mEglEnvironment.getPtr());
         initialize();
     }
 
@@ -42,7 +46,6 @@ public class EGLSurfaceView extends GLSurfaceView {
     }
 
     private void initialize() {
-        mShowViewPtr = nativeCreateShowView();
         // 设置 EGL 配置
         setEGLConfigChooser(new EGLConfigSelector()); // EGLConfig真正的选择选择逻辑在cpp代码中
 
@@ -105,7 +108,8 @@ public class EGLSurfaceView extends GLSurfaceView {
         });
     }
 
-    private native long nativeCreateShowView();
+    private native long nativeCreateShowView(long eglEnvironmentPtr);
     private native void nativeDestroyShowView(long showViewPtr);
     private native void nativeOnShowViewDraw(long showViewPtr);
+    public native void nativeShowImage(String filePath);
 }

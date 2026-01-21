@@ -15,7 +15,7 @@ namespace face {
         ~RenderConsumer();
 
         Error onRequestConsume(uint32_t requestId) override;
-        Error onConsumeData(PixelData data) override;
+        Error onConsumeData(const std::shared_ptr<PixelData>& data) override;
     };
 
 } // face

@@ -34,7 +34,7 @@ namespace face {
                 // 立即检查并移除多余元素
                 while (mQueue.size() > mMaxSize) {
                     if (mPopListener) {
-                        mPopListener(true, mQueue.front());
+                        mPopListener(mQueue.front());
                     }
                     mQueue.pop_front();
                 }
@@ -44,53 +44,60 @@ namespace face {
             return false;
         }
 
-        void setPushListener(DataListener<T> &&pushListener = nullptr) {
-            mPushListener = pushListener;
-        }
-
         /**
          * @param popListener(bool: 是否自动移除数据，T: 被移除的数据)
          */
-        void setPopListener(DataListener<bool, T> &&popListener = nullptr) {
+        void setPopListener(DataListener<std::shared_ptr<T>> &&popListener = nullptr) {
             mPopListener = popListener;
         }
 
         // 使用函数模板实现通用引用
         template<typename U,
                  typename = typename std::enable_if<std::is_convertible<U, T>::value>::type>
-        size_t push(U &&item) {
+        size_t push(std::shared_ptr<U> &&item) {
             std::unique_lock<std::mutex> lock(mMutex);
             if (mPolicy == LimitPolicy::WaitWhenBusy) {
                 mCond.wait(lock, [this] { return mQueue.size() < mMaxSize; });
             } else { // DropWhenBusy
-                if (mQueue.size() >= mMaxSize) {
+                while (mQueue.size() >= mMaxSize) {
                     if (mPopListener) {
-                        mPopListener(true, mQueue.front());
+                        mPopListener(mQueue.front());
                     }
                     mQueue.pop_front();
                 }
             }
-
-            if (mPushListener) {
-                mPushListener(item);
-            }
-            mQueue.push_back(std::forward<U>(item));
+            mQueue.push_back(std::move(item));
             return mQueue.size();
         }
 
-        Error pop(T &item) {
+        template<typename U,
+                 typename = typename std::enable_if<std::is_convertible<U, T>::value>::type>
+        size_t push(const std::shared_ptr<U> &item) {
+            std::unique_lock<std::mutex> lock(mMutex);
+            if (mPolicy == LimitPolicy::WaitWhenBusy) {
+                mCond.wait(lock, [this] { return mQueue.size() < mMaxSize; });
+            } else { // DropWhenBusy
+                while (mQueue.size() >= mMaxSize) {
+                    if (mPopListener) {
+                        mPopListener(mQueue.front());
+                    }
+                    mQueue.pop_front();
+                }
+            }
+            mQueue.push_back(item);
+            return mQueue.size();
+        }
+
+        std::shared_ptr<T> pop() {
             std::unique_lock<std::mutex> lock(mMutex);
             if (mQueue.empty()) {
-                return Error::Err_EmptyQueue;
+                return nullptr;
             }
-            item = std::move(mQueue.front());
-            if (mPopListener) {
-                mPopListener(false, item);
-            }
+            auto& item = mQueue.front();
             mQueue.pop_front();
             lock.unlock();
             mCond.notify_one();
-            return Error::None;
+            return std::move(item);
         }
 
         bool empty() const {
@@ -111,23 +118,22 @@ namespace face {
             std::lock_guard<std::mutex> lock(mMutex);
             while (!mQueue.empty()) {
                 if (mPopListener) {
-                    mPopListener(true, mQueue.front());
+                    mPopListener(mQueue.front());
                 }
                 mQueue.pop_front();
             }
             mCond.notify_all();
         }
 
-        const std::deque<T> &data() const { return mQueue; };
+        const std::deque<std::shared_ptr<T>> &data() const { return mQueue; };
 
     private:
         LimitPolicy mPolicy{LimitPolicy::DropWhenBusy};
-        std::deque<T> mQueue;
+        std::deque<std::shared_ptr<T>> mQueue;
         mutable std::mutex mMutex;
         std::condition_variable mCond;
         size_t mMaxSize{1};
-        DataListener<T> mPushListener{nullptr};
-        DataListener<bool, T> mPopListener{nullptr};
+        DataListener<std::shared_ptr<T>> mPopListener{nullptr};
     };
 
 }

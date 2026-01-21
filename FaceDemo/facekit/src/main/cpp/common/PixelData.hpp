@@ -10,7 +10,7 @@
 namespace face
 {
     enum class PixelFormat: uint8_t {
-        I420P, NV21, ARGB, RGBA, RGB, BGR
+        UNKNOWN, I420P, NV21, ARGB, RGBA, RGB, BGR
     };
 
     class PixelData

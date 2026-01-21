@@ -12,14 +12,14 @@
 namespace face
 {
 
-    class ImageSource: Source<std::shared_ptr<PixelData>>
+    class ImageSource: public Source<PixelData>
     {
 
     public:
-        explicit ImageSource(const std::string& imagePath);
+        explicit ImageSource();
         ~ImageSource() noexcept override;
         void requestLoadImage(const std::string& imagePath);
-        std::string getImagePath(uint32_t index);
+        std::string getImagePath(uint32_t index) const;
         std::shared_ptr<PixelData> getNextData() override;
         bool isDataAvailable() override;
     private:

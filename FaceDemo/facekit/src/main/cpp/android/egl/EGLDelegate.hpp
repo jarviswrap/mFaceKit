@@ -8,14 +8,13 @@
 #include <unordered_map>
 #include <memory>
 #include <mutex>
-
+#include <jni.h>
 #include <android/native_window.h>
-#include "EGLEnvironment.hpp"
-
-#include "EGLSurfaceView.hpp"
 
 namespace face {
-
+    class ImagePreviewer;
+    class EGLEnvironment;
+    class EGLSurfaceView;
     class EGLDelegate {
     public:
         static EGLDelegate& getInstance();
@@ -28,10 +27,11 @@ namespace face {
 
         int64_t getSharedContext();
 
-        int64_t createEGLSurfaceView(JNIEnv* env, jobject eglSurfaceView);
-        std::shared_ptr<EGLSurfaceView> getShowView(int64_t surfaceview_ptr);
+        int64_t createEGLSurfaceView(JNIEnv* env, jobject eglSurfaceView, int64_t eglEnvironmentPtr);
+        std::shared_ptr<EGLSurfaceView> getShowView(int64_t surfaceview_ptr = 0);
         void removeEGLShowView(int64_t surfaceview_ptr);
 
+        std::shared_ptr<ImagePreviewer> getImagePreviewer();
     private:
         EGLDelegate() = default;
         ~EGLDelegate() = default;
@@ -42,6 +42,9 @@ namespace face {
         std::unordered_map<int64_t, std::shared_ptr<EGLEnvironment>> mEnvironments;
 
         std::unordered_map<int64_t, std::shared_ptr<EGLSurfaceView>> mSurfaceViews;
+        std::shared_ptr<EGLSurfaceView> mLastShowView;
+
+        std::shared_ptr<ImagePreviewer> mImagePreviewer;
     };
 
 } // face

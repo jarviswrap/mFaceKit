@@ -38,7 +38,8 @@ public:
      * 获取单例实例
      */
     static JNIEnvManager& getInstance();
-
+    JNIEnvManager(const JNIEnvManager&) = delete;
+    JNIEnvManager& operator=(const JNIEnvManager&) = delete;
     /**
      * 初始化JavaVM（必须在JNI_OnLoad中调用）
      * @param vm JavaVM实例
@@ -67,8 +68,6 @@ public:
 private:
     JNIEnvManager() = default;
     ~JNIEnvManager() = default;
-    JNIEnvManager(const JNIEnvManager&) = delete;
-    JNIEnvManager& operator=(const JNIEnvManager&) = delete;
 
     JavaVM* javaVM_ = nullptr;
     std::mutex mutex_;

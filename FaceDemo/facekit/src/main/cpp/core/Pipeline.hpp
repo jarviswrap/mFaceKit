@@ -17,9 +17,10 @@ namespace face{
     template<typename I, typename O>
     class Pipeline {
     public:
-        virtual ~Pipeline() = default;
+        Pipeline() = default;
+        virtual ~Pipeline() { stop(); };
 
-        Error start(std::shared_ptr<Source<I>> source, std::shared_ptr<Destination<O>> destination, std::shared_ptr<Processor<I, O>> processor = nullptr) {
+        Error start(std::shared_ptr<Source<I>> source, std::shared_ptr<Destination<O>> destination, std::shared_ptr<Processor<I, O>> processor) {
             if (!source || !destination || !processor) {
                 return Error::Err_InvalidInput;
             }
@@ -32,38 +33,39 @@ namespace face{
             std::weak_ptr<LimitQueue<I>> weakQueue(mInputQueue);
             std::weak_ptr<Processor<I,O>> weakProcessor(mProcessor);
             std::weak_ptr<Destination<O>> weakDestination(mDestination);
-            I inputData;
-            mThread->setOnLoopListener([weakQueue,weakProcessor,weakDestination, &inputData] (uint32_t requestCode) -> void {
+
+            mThread->setOnLoopListener([weakQueue,weakProcessor,weakDestination] (uint32_t requestCode) -> void {
                 auto queue = weakQueue.lock();
                 if (queue) {
-                    auto res = queue->pop(inputData);
+                    auto inputData = queue->pop();
                     auto processor = weakProcessor.lock();
-                    if (res == Error::None && processor) {
-                        auto outputData = processor(inputData);
+                    if (inputData && processor) {
                         auto destination = weakDestination.lock();
                         if (destination) {
-                            destination->onOutput(outputData);
+                            destination->output(processor->onProcess(std::move(inputData)));
                         }
                     }
                 }
             });
 
+            auto dest = mDestination;
+            mThread->setOnStopListener([dest] () -> void {
+                dest->destroy();
+            });
+
             mInputQueue = std::make_shared<LimitQueue<I>>();
             mInputQueue->setMaxSize(1);
             mInputQueue->setLimitPolicy(LimitPolicy::DropWhenBusy);
-            mInputQueue->setPushListener([&](const I& input) -> void {
-                notifyDataChanged();
-            });
-
             return onStart();
         };
 
         Error stop() {
-            auto res = onStop();
+            mSource->setDataAvailableListener(nullptr);
+            mThread->requestStop();
             mSource.reset();
             mDestination.reset();
             mProcessor.reset();
-            return res;
+            return Error::None;
         };
     protected:
         virtual Error onStart() {
@@ -72,9 +74,10 @@ namespace face{
             }
 
             std::weak_ptr<LimitQueue<I>> weakQueue(mInputQueue);
-            mSource->setDataAvailableListener([weakQueue] (const I& input) -> void {
+            mSource->setDataAvailableListener([this, weakQueue] (const std::shared_ptr<I>& inputData) -> void {
                 if (auto queue = weakQueue.lock()) {
-                    queue->push(input);
+                    queue->push(std::move(inputData));
+                    notifyDataChanged();
                 }
             });
 
@@ -87,10 +90,6 @@ namespace face{
                 mThread->requestLoop(++requestId);
             }
         }
-        virtual Error onStop() {
-            mSource->setDataAvailableListener(nullptr);
-            mThread->requestStop();
-        };
 
         std::shared_ptr<Source<I>> mSource;
         std::shared_ptr<Destination<O>> mDestination;

@@ -58,8 +58,8 @@ class SplashActivity : ComponentActivity() {
             }
         }
 
+
         updatePermissionStatus()
-        
         if (allPermissionsGranted()) {
             // 权限已授予，2秒后跳转
             startAutoNavigationTimer()

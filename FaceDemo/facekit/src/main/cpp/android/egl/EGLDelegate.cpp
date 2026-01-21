@@ -3,6 +3,8 @@
 //
 
 #include "EGLDelegate.hpp"
+#include "EGLEnvironment.hpp"
+#include "EGLSurfaceView.hpp"
 
 namespace face {
 
@@ -50,16 +52,20 @@ namespace face {
         return 0;
     }
 
-    int64_t EGLDelegate::createEGLSurfaceView(JNIEnv *env, jobject eglSurfaceView) {
+    int64_t EGLDelegate::createEGLSurfaceView(JNIEnv *env, jobject eglSurfaceView, int64_t eglEnvironmentPtr) {
         std::lock_guard<std::mutex> lock(mMutex);
-        auto showView = std::make_shared<EGLSurfaceView>(env, eglSurfaceView);
+        auto showView = std::make_shared<EGLSurfaceView>(env, eglSurfaceView, eglEnvironmentPtr);
         auto ptr = (int64_t) showView.get();
         mSurfaceViews.emplace(ptr, showView);
+        mLastShowView = showView;
         return ptr;
     }
 
     std::shared_ptr<EGLSurfaceView> EGLDelegate::getShowView(int64_t surfaceview_ptr) {
         std::lock_guard<std::mutex> lock(mMutex);
+        if (surfaceview_ptr == 0 && mLastShowView) {
+            return mLastShowView;
+        }
         auto it = mSurfaceViews.find(surfaceview_ptr);
         if (it != mSurfaceViews.end()) {
             return it->second;
@@ -70,6 +76,20 @@ namespace face {
     void EGLDelegate::removeEGLShowView(int64_t surfaceview_ptr) {
         std::lock_guard<std::mutex> lock(mMutex);
         mSurfaceViews.erase(surfaceview_ptr);
+        if (mLastShowView) {
+            auto ptr = (int64_t) mLastShowView.get();
+            if (surfaceview_ptr == ptr) {
+                mLastShowView.reset();
+            }
+        }
+    }
+
+    std::shared_ptr<ImagePreviewer> EGLDelegate::getImagePreviewer() {
+        std::lock_guard<std::mutex> lock(mMutex);
+        if (!mImagePreviewer) {
+            mImagePreviewer = std::shared_ptr<ImagePreviewer>();
+        }
+        return mImagePreviewer;
     }
 
 

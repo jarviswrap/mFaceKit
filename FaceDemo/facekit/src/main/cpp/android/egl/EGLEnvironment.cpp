@@ -144,6 +144,12 @@ namespace face {
             LOGE("eglCreateWindowSurface failed");
             return 0;
         }
+        mSurfaceType = EGLSurfaceType::Window;
+        EGLint width;
+        EGLint height;
+        eglQuerySurface(mDisplay, mSurface, EGL_WIDTH, &width);
+        eglQuerySurface(mDisplay, mSurface, EGL_HEIGHT, &height);
+        mSurfaceResolution.setSize(width, height);
         return (int64_t)mSurface;
     }
 
@@ -165,12 +171,18 @@ namespace face {
             LOGE("eglCreatePbufferSurface failed");
             return 0;
         }
+        mSurfaceType = EGLSurfaceType::PBuffer;
+        mSurfaceResolution.setSize(width, height);
         return (int64_t)mSurface;
     }
 
     bool EGLEnvironment::destroyEGLSurface() {
         if (mDisplay != EGL_NO_DISPLAY && mSurface != EGL_NO_SURFACE) {
+            if (mSurfaceListener) {
+                mSurfaceListener(EGLEventId::SurfaceOnDestroy, mSurfaceType, mSurfaceResolution);
+            }
             eglDestroySurface(mDisplay, mSurface);
+            mSurfaceType = EGLSurfaceType::NoSurface;
             mSurface = EGL_NO_SURFACE;
             return true;
         }
@@ -183,27 +195,20 @@ namespace face {
                 LOGE("eglMakeCurrent failed");
                 return false;
             }
+            if (mSurfaceListener) {
+                mSurfaceListener(EGLEventId::SurfaceCreated, mSurfaceType, mSurfaceResolution);
+            }
             return true;
         }
         return false;
     }
 
     int32_t EGLEnvironment::getEGLSurfaceWidth() {
-        if (mDisplay != EGL_NO_DISPLAY && mSurface != EGL_NO_SURFACE) {
-            EGLint width;
-            eglQuerySurface(mDisplay, mSurface, EGL_WIDTH, &width);
-            return width;
-        }
-        return 0;
+        return mSurfaceResolution.getWidth();
     }
 
     int32_t EGLEnvironment::getEGLSurfaceHeight() {
-        if (mDisplay != EGL_NO_DISPLAY && mSurface != EGL_NO_SURFACE) {
-            EGLint height;
-            eglQuerySurface(mDisplay, mSurface, EGL_HEIGHT, &height);
-            return height;
-        }
-        return 0;
+        return mSurfaceResolution.getHeight();
     }
 
     int64_t EGLEnvironment::getEGLContext() {
@@ -214,8 +219,12 @@ namespace face {
         return (int64_t)mSurface;
     }
 
-    int64_t EGLEnvironment::getSharedFromEGLContext() {
+    int64_t EGLEnvironment::getSharedFromEGLContext() const {
         return mSharedContextPtr;
+    }
+
+    bool EGLEnvironment::isReady() const {
+        return mSurface != EGL_NO_SURFACE && mContext != EGL_NO_CONTEXT;
     }
 
 } // face

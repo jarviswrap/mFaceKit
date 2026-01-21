@@ -6,6 +6,9 @@
 
 #include "EGLDelegate.hpp"
 #include "android/AndroidUtils.hpp"
+#include "EGLEnvironment.hpp"
+#include "EGLSurfaceView.hpp"
+#include "ImagePreviewer.hpp"
 
 using namespace face;
 
@@ -125,8 +128,8 @@ Java_com_jarvis_facekit_egl_EGLEnvironment_getEGLSurfaceHeight(JNIEnv *env,
 
 extern "C"
 JNIEXPORT jlong JNICALL
-Java_com_jarvis_facekit_egl_EGLSurfaceView_nativeCreateShowView(JNIEnv *env, jobject thiz) {
-    return EGLDelegate::getInstance().createEGLSurfaceView(env, thiz);
+Java_com_jarvis_facekit_egl_EGLSurfaceView_nativeCreateShowView(JNIEnv *env, jobject thiz, jlong eglEnvironmentPtr) {
+    return EGLDelegate::getInstance().createEGLSurfaceView(env, thiz, eglEnvironmentPtr);
 }
 
 extern "C"
@@ -146,4 +149,12 @@ Java_com_jarvis_facekit_egl_EGLSurfaceView_nativeOnShowViewDraw(JNIEnv *env,
     if (showView) {
         showView->consumeData();
     }
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_jarvis_facekit_egl_EGLSurfaceView_nativeShowImage(JNIEnv *env, jobject thiz, jstring file_path) {
+    auto imagePreviewer = EGLDelegate::getInstance().getImagePreviewer();
+    imagePreviewer->start();
+    imagePreviewer->requestLoadImage(AndroidUtils::readStringUTF(env, file_path));
 }

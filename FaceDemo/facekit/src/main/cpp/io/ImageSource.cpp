@@ -6,7 +6,7 @@
 #include "../../include/cv/cv.hpp"
 
 namespace face {
-    ImageSource::ImageSource(const std::string &imagePath) {
+    ImageSource::ImageSource() {
         mThread = std::make_shared<LoopThread>();
         mThread->setLoopMode(LoopMode::REQUEST);
         mCurrentData = std::make_shared<PixelData>();
@@ -44,7 +44,6 @@ namespace face {
             }
         });
         mThread->start();
-        requestLoadImage(imagePath);
     }
 
     ImageSource::~ImageSource() noexcept {
@@ -64,13 +63,12 @@ namespace face {
         return mCurrentData;
     }
 
-    std::string ImageSource::getImagePath(uint32_t index) {
-        if (index >= mImagePathList.size()) return "";
-        return mImagePathList[index];
-    }
-
     bool ImageSource::isDataAvailable() {
         return mCurrentData && !mCurrentData->isEmpty();
+    }
+
+    std::string ImageSource::getImagePath(uint32_t index) const {
+        
     }
 
 } // face

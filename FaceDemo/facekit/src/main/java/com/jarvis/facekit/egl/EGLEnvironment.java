@@ -134,6 +134,14 @@ public class EGLEnvironment {
         destroyEGLEnvironment(mEGLEnvironment);
     }
 
+    public boolean isReady() {
+        return mSurfacePtr != 0 && mContextPtr != 0;
+    }
+
+    public long getPtr() {
+        return mEGLEnvironment;
+    }
+
     private native long createEGLEnvironment();
     private native void destroyEGLEnvironment(long environmentPtr);
 
