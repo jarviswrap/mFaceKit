@@ -16,16 +16,16 @@ namespace face
     {
 
     public:
-        explicit ImageSource();
+        ImageSource();
         ~ImageSource() noexcept override;
         void requestLoadImage(const std::string& imagePath);
-        std::string getImagePath(uint32_t index) const;
+        std::string getImagePath(int32_t index = -1) const;
         std::shared_ptr<PixelData> getNextData() override;
         bool isDataAvailable() override;
     private:
-        std::shared_ptr<LoopThread> mThread;
-        std::shared_ptr<PixelData> mCurrentData;
-        std::vector<std::string> mImagePathList;
+        std::shared_ptr<LoopThread> mThread{nullptr};
+        std::shared_ptr<PixelData> mCurrentData{nullptr};
+        std::vector<std::string> mImagePathList{nullptr};
     };
 
 } // face

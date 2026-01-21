@@ -20,8 +20,8 @@ namespace face {
         void requestLoadImage(const std::string& imagePath);
         Error stop();
     private:
-        std::shared_ptr<Pipeline<PixelData, PixelData>> mImagePipeline;
-        std::shared_ptr<ImageSource> mSource;
+        std::shared_ptr<Pipeline<PixelData, PixelData>> mImagePipeline{nullptr};
+        std::shared_ptr<ImageSource> mSource{nullptr};
     };
 
 } // face

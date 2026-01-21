@@ -42,8 +42,8 @@ namespace face {
         };
 
     protected:
-        std::shared_ptr<LimitQueue<T>> mDataQueue;
-        std::shared_ptr<Consumer<T>> mConsumer;
+        std::shared_ptr<LimitQueue<T>> mDataQueue{nullptr};
+        std::shared_ptr<Consumer<T>> mConsumer{nullptr};
     };
 }
 #endif //FACEDEMO_DESTINATION_HPP

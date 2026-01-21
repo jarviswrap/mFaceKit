@@ -20,6 +20,7 @@ public enum FaceKit {
         System.loadLibrary("facekit");
         System.loadLibrary("MNN");
         System.loadLibrary("MNNOpenCV");
+        System.loadLibrary("MNN_Express");
     }
 
     public EGLEnvironment touchEGL() {

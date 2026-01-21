@@ -5,6 +5,7 @@
 #include "EGLDelegate.hpp"
 #include "EGLEnvironment.hpp"
 #include "EGLSurfaceView.hpp"
+#include "common/Log.hpp"
 
 namespace face {
 
@@ -54,7 +55,12 @@ namespace face {
 
     int64_t EGLDelegate::createEGLSurfaceView(JNIEnv *env, jobject eglSurfaceView, int64_t eglEnvironmentPtr) {
         std::lock_guard<std::mutex> lock(mMutex);
-        auto showView = std::make_shared<EGLSurfaceView>(env, eglSurfaceView, eglEnvironmentPtr);
+        std::shared_ptr<EGLEnvironment> eglEnvironment;
+        auto it = mEnvironments.find(eglEnvironmentPtr);
+        if (it != mEnvironments.end()) {
+            eglEnvironment = it->second;
+        }
+        auto showView = std::make_shared<EGLSurfaceView>(env, eglSurfaceView, eglEnvironment);
         auto ptr = (int64_t) showView.get();
         mSurfaceViews.emplace(ptr, showView);
         mLastShowView = showView;

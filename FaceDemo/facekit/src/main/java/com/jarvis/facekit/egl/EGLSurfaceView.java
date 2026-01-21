@@ -89,7 +89,6 @@ public class EGLSurfaceView extends GLSurfaceView {
                 mEglEnvironment.destroyEGLSurface();
             }
         });
-        setRenderMode(RENDERMODE_WHEN_DIRTY);
         setRenderer(new Renderer() {
             @Override
             public void onDrawFrame(GL10 gl) {
@@ -106,6 +105,7 @@ public class EGLSurfaceView extends GLSurfaceView {
                 Log.e(TAG, "onSurfaceCreated");
             }
         });
+        setRenderMode(RENDERMODE_WHEN_DIRTY);
     }
 
     private native long nativeCreateShowView(long eglEnvironmentPtr);

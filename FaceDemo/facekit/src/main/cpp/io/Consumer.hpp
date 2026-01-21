@@ -35,7 +35,7 @@ namespace face{
             onDestroy();
         };
     protected:
-        DataObtainer<std::shared_ptr<T>> mDataObtainer;
+        DataObtainer<std::shared_ptr<T>> mDataObtainer{nullptr};
         std::atomic<uint32_t> mRequestId{0};
 
         virtual Error onRequestConsume(uint32_t requestId) = 0; // onRequestConsume和onDestroy都来自生产者线程

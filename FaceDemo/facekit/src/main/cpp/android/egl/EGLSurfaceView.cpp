@@ -10,10 +10,9 @@
 #include "render/PixelRender.hpp"
 
 namespace face {
-    EGLSurfaceView::EGLSurfaceView(JNIEnv *env, jobject glsurfaceview, int64_t environmentPtr) {
+    EGLSurfaceView::EGLSurfaceView(JNIEnv *env, jobject glsurfaceview, std::shared_ptr<EGLEnvironment> environment) {
         mSurfaceView = env->NewGlobalRef(glsurfaceview);
-        mEnvironment = EGLDelegate::getInstance().getEGLEnvironment(environmentPtr);
-
+        mEnvironment = std::move(environment);
         jclass cls = env->GetObjectClass(glsurfaceview);
         mSurfaceViewClass = (jclass) env->NewGlobalRef(cls);
         mRequestRenderMethodID = env->GetMethodID(mSurfaceViewClass, "requestRender", "()V");

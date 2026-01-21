@@ -27,12 +27,15 @@ add_library(MNNOpenCV SHARED IMPORTED)
 set_target_properties(MNNOpenCV PROPERTIES
         IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/libMNNOpenCV.so)
 
+add_library(MNN_Express SHARED IMPORTED)
+set_target_properties(MNN_Express PROPERTIES
+        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/libMNN_Express.so)
+
 add_library(${CMAKE_PROJECT_NAME} SHARED
         ${COMMON_SOURCES}
         ${RENDER_SOURCES}
         ${CORE_SOURCES}
         ${IO_SOURCES}
-        android/egl/ImagePreviewer.cpp
         )
 if(ANDROID)
     target_sources(${CMAKE_PROJECT_NAME} PRIVATE ${ANDROID_SOURCES})
@@ -51,4 +54,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
         android
         log
         MNN
-        MNNOpenCV)
+        MNNOpenCV
+        MNN_Express
+        EGL
+        GLESv3)

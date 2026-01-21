@@ -13,7 +13,7 @@ namespace face {
     class PixelRender;
     class EGLSurfaceView: public Consumer<PixelData> {
     public:
-        EGLSurfaceView(JNIEnv *env, jobject glsurfaceview, int64_t environmentPtr);
+        EGLSurfaceView(JNIEnv *env, jobject glsurfaceview, std::shared_ptr<EGLEnvironment> environment);
         ~EGLSurfaceView() override;
 
         Error onRequestConsume(uint32_t requestId) override;
@@ -24,8 +24,8 @@ namespace face {
         jobject mSurfaceView{nullptr};
         jclass mSurfaceViewClass{nullptr};
         jmethodID mRequestRenderMethodID{nullptr};
-        std::shared_ptr<EGLEnvironment> mEnvironment;
-        std::shared_ptr<PixelRender> mRender;
+        std::shared_ptr<EGLEnvironment> mEnvironment{nullptr};
+        std::shared_ptr<PixelRender> mRender{nullptr};
     };
 
 } // face

@@ -9,6 +9,7 @@
 #include "io/Destination.hpp"
 #include "common/LimitQueue.hpp"
 #include "common/LoopThread.h"
+#include "common/Log.hpp"
 
 #include <vector>
 
@@ -91,11 +92,11 @@ namespace face{
             }
         }
 
-        std::shared_ptr<Source<I>> mSource;
-        std::shared_ptr<Destination<O>> mDestination;
-        std::shared_ptr<Processor<I, O>> mProcessor;
-        std::shared_ptr<LimitQueue<I>> mInputQueue;
-        std::shared_ptr<LoopThread> mThread;
+        std::shared_ptr<Source<I>> mSource{nullptr};
+        std::shared_ptr<Destination<O>> mDestination{nullptr};
+        std::shared_ptr<Processor<I, O>> mProcessor{nullptr};
+        std::shared_ptr<LimitQueue<I>> mInputQueue{nullptr};
+        std::shared_ptr<LoopThread> mThread{nullptr};
         uint32_t requestId = 0;
     };
 }

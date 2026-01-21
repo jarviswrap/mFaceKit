@@ -9,6 +9,7 @@
 #include "EGLEnvironment.hpp"
 #include "EGLSurfaceView.hpp"
 #include "ImagePreviewer.hpp"
+#include "common/Log.hpp"
 
 using namespace face;
 

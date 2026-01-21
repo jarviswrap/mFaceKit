@@ -5,6 +5,7 @@
 #include "ImagePreviewer.hpp"
 #include "android/egl/EGLDelegate.hpp"
 #include "android/egl/EGLSurfaceView.hpp"
+#include "common/Log.hpp"
 
 namespace face {
     Error ImagePreviewer::start() {
@@ -14,7 +15,7 @@ namespace face {
         mSource = std::make_shared<ImageSource>();
         mImagePipeline = std::make_shared<Pipeline<PixelData, PixelData>>();
         auto showView = EGLDelegate::getInstance().getShowView();
-        if (!showView) {
+        if (showView) {
             auto androidDisplayDestination = std::make_shared<Destination<PixelData>>(showView);
             return mImagePipeline->start(mSource, androidDisplayDestination, std::make_shared<PassProcessor<PixelData>>());
         }

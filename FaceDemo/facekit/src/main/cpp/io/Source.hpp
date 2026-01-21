@@ -21,7 +21,7 @@ namespace face {
             mDataListener = std::move(listener);
         };
     protected:
-        DataListener<std::shared_ptr<T>> mDataListener;
+        DataListener<std::shared_ptr<T>> mDataListener{nullptr};
     };
 }
 #endif //FACEDEMO_SOURCE_HPP

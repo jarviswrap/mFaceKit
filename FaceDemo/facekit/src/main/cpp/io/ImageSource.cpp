@@ -4,6 +4,7 @@
 
 #include "ImageSource.hpp"
 #include "../../include/cv/cv.hpp"
+#include "common/Log.hpp"
 
 namespace face {
     ImageSource::ImageSource() {
@@ -13,7 +14,7 @@ namespace face {
         std::weak_ptr<PixelData> weakPtr(mCurrentData);
         mThread->setOnLoopListener([weakPtr, this](uint32_t requestId) -> void {
             if (auto pixelData = weakPtr.lock()) {
-                auto path = getImagePath(requestId - 1);
+                auto path = getImagePath((int32_t)requestId - 1);
                 if (!path.empty()) {
                     // 读取图像文件（默认BGR格式）
                     auto imageVar = MNN::CV::imread(path, MNN::CV::IMREAD_COLOR);
@@ -67,8 +68,11 @@ namespace face {
         return mCurrentData && !mCurrentData->isEmpty();
     }
 
-    std::string ImageSource::getImagePath(uint32_t index) const {
-        
+    std::string ImageSource::getImagePath(int32_t index) const {
+        auto size = mImagePathList.size();
+        if (index >= size) return "";
+        if (index == -1 && size > 0) return mImagePathList[size - 1];
+        return mImagePathList[index];
     }
 
 } // face

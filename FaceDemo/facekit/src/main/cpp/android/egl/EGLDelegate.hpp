@@ -42,9 +42,9 @@ namespace face {
         std::unordered_map<int64_t, std::shared_ptr<EGLEnvironment>> mEnvironments;
 
         std::unordered_map<int64_t, std::shared_ptr<EGLSurfaceView>> mSurfaceViews;
-        std::shared_ptr<EGLSurfaceView> mLastShowView;
+        std::shared_ptr<EGLSurfaceView> mLastShowView{nullptr};
 
-        std::shared_ptr<ImagePreviewer> mImagePreviewer;
+        std::shared_ptr<ImagePreviewer> mImagePreviewer{nullptr};
     };
 
 } // face
