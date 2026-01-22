@@ -8,13 +8,14 @@
 
 namespace face {
     ImageSource::ImageSource() {
-        mThread = std::make_shared<LoopThread>();
+        mThread = std::make_shared<LoopThread>("ImageSource");
         mThread->setLoopMode(LoopMode::REQUEST);
         mCurrentData = std::make_shared<PixelData>();
         std::weak_ptr<PixelData> weakPtr(mCurrentData);
         mThread->setOnLoopListener([weakPtr, this](uint32_t requestId) -> void {
             if (auto pixelData = weakPtr.lock()) {
                 auto path = getImagePath((int32_t)requestId - 1);
+                LOGE("ImageSource start read image:%s", path.c_str());
                 if (!path.empty()) {
                     // 读取图像文件（默认BGR格式）
                     auto imageVar = MNN::CV::imread(path, MNN::CV::IMREAD_COLOR);
@@ -26,13 +27,14 @@ namespace face {
                             int height = dims[0];
                             int width = dims[1];
                             int channels = dims[2];
-
+                            LOGE("ImageSource had read image size:%dx%d", width, height);
                             // 读取像素数据
                             auto imagePtr = imageVar->readMap<uint8_t>();
                             if (imagePtr != nullptr) {
                                 size_t dataSize = info->size;
+                                LOGE("ImageSource had read image dataSize:%zu",dataSize);
                                 pixelData->setPixelData((uint8_t *) imagePtr, width, height,
-                                                        PixelFormat::BGR, dataSize);
+                                                        PixelFormat::BGR, dataSize, true);
                                 if (mDataListener) {
                                     mDataListener(pixelData);
                                 }
@@ -54,9 +56,11 @@ namespace face {
     void ImageSource::requestLoadImage(const std::string &imagePath) {
         auto size = mImagePathList.size();
         if (size > 0 && imagePath == mImagePathList[size - 1]) {
+            LOGE("ImageSource::%s request the same Image twice will drop", __FUNCTION__ );
             return;
         }
         mImagePathList.push_back(imagePath);
+        LOGE("ImageSource::requestLoadImage id:%d", size + 1);
         mThread->requestLoop(size + 1);
     }
 

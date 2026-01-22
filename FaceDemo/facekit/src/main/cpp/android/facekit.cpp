@@ -2,8 +2,16 @@
 #include <string>
 //#include "engine/FaceInference.hpp"
 #include "android/AndroidUtils.hpp"
+#include "common/Log.hpp"
+#include "JNIEnvManager.hpp"
 
 //std::shared_ptr<face::FaceInference> mInference;
+extern "C" JNIEXPORT jint JNICALL
+JNI_OnLoad(JavaVM* vm, void* reserved) {
+    LOGE("JNI_OnLoad");
+    face::JNIEnvManager::getInstance().initJavaVM(vm);
+    return JNI_VERSION_1_6;
+}
 
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_jarvis_facekit_FaceKit_stringFromJNI(

@@ -1,6 +1,5 @@
 package com.jarvis.facedemo
 
-import android.opengl.GLSurfaceView
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.enableEdgeToEdge
@@ -22,8 +21,28 @@ class SurfaceActivity : ComponentActivity() {
 
 
         setContentView(glSurfaceView)
-        imagePath = filesDir.absolutePath + File.separator + "test_image.png"
-        FileUtils.copyAssetResource2File(this, "test_image.png", imagePath)
+        val image1Path = filesDir.absolutePath + File.separator + "test_image.png"
+        val image2Path = filesDir.absolutePath + File.separator + "body_face.png"
+
+        if (!File(image1Path).exists()) {
+            FileUtils.copyAssetResource2File(this, "test_image.png", image1Path)
+        }
+        if (!File(image2Path).exists()) {
+            FileUtils.copyAssetResource2File(this, "body_face.png", image2Path)
+        }
+
+        imagePath = image1Path
+        glSurfaceView.nativeShowImage(imagePath)
+
+        val runnable = object : Runnable {
+            override fun run() {
+                imagePath = if (imagePath == image1Path) image2Path else image1Path
+                glSurfaceView.nativeShowImage(imagePath)
+                glSurfaceView.postDelayed(this, 2000)
+            }
+        }
+        glSurfaceView.postDelayed(runnable, 2000)
+
         // 全屏显示
         window.setFlags(
             WindowManager.LayoutParams.FLAG_FULLSCREEN,
@@ -34,7 +53,6 @@ class SurfaceActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         glSurfaceView.onResume()
-        glSurfaceView.nativeShowImage(imagePath)
     }
 
     override fun onPause() {

@@ -17,7 +17,9 @@ namespace face {
     template<typename T>
     class PassProcessor: public Processor<T, T> {
     public:
-        std::shared_ptr<T> onProcess(std::shared_ptr<T>&& input) override { return std::move(input); };
+        std::shared_ptr<T> onProcess(std::shared_ptr<T>&& input) override {
+            return std::move(input);
+        };
     };
 } // face
 

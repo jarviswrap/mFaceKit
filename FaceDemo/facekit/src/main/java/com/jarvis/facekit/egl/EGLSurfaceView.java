@@ -89,6 +89,7 @@ public class EGLSurfaceView extends GLSurfaceView {
                 mEglEnvironment.destroyEGLSurface();
             }
         });
+        setEGLContextClientVersion(2);
         setRenderer(new Renderer() {
             @Override
             public void onDrawFrame(GL10 gl) {
@@ -111,5 +112,26 @@ public class EGLSurfaceView extends GLSurfaceView {
     private native long nativeCreateShowView(long eglEnvironmentPtr);
     private native void nativeDestroyShowView(long showViewPtr);
     private native void nativeOnShowViewDraw(long showViewPtr);
+    private native void nativeSetScaleType(long showViewPtr, int scaleType);
     public native void nativeShowImage(String filePath);
+
+    public enum ScaleType {
+        FitXY(0),
+        CenterCrop(1),
+        FitCenter(2);
+
+        private final int value;
+        ScaleType(int value) {
+            this.value = value;
+        }
+        public int getValue() {
+            return value;
+        }
+    }
+
+    public void setScaleType(ScaleType scaleType) {
+        if (mShowViewPtr != 0) {
+            nativeSetScaleType(mShowViewPtr, scaleType.getValue());
+        }
+    }
 }

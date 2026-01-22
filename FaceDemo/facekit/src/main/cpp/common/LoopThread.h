@@ -10,6 +10,7 @@
 #include <functional>
 #include <mutex>
 #include <condition_variable>
+#include <string>
 #include "common/Common.hpp"
 
 namespace face
@@ -38,7 +39,7 @@ namespace face
         // OnStop: 线程结束事件，无参数
         using OnStop = DataListener<>;
         
-        LoopThread();
+        LoopThread(const std::string& name = "LoopThread");
         virtual ~LoopThread();
         
         // 禁止拷贝
@@ -154,6 +155,7 @@ namespace face
     private:
         // 线程对象
         std::thread mThread;
+        std::string mThreadName;
         
         // 线程状态
         std::atomic<bool> mRunning{false};

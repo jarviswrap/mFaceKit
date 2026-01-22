@@ -14,14 +14,15 @@ namespace face {
 
     class ImagePreviewer{
     public:
-        ImagePreviewer() = default;
-        ~ImagePreviewer() = default;
+        ImagePreviewer();
+        ~ImagePreviewer();
         Error start();
         void requestLoadImage(const std::string& imagePath);
         Error stop();
     private:
         std::shared_ptr<Pipeline<PixelData, PixelData>> mImagePipeline{nullptr};
         std::shared_ptr<ImageSource> mSource{nullptr};
+        std::shared_ptr<Destination<PixelData>> mAndroidDisplayDestination;
     };
 
 } // face

@@ -93,11 +93,11 @@ namespace face {
             if (mQueue.empty()) {
                 return nullptr;
             }
-            auto& item = mQueue.front();
+            auto item = mQueue.front();
             mQueue.pop_front();
-            lock.unlock();
+            lock.unlock(); /**如果不手动解锁， mCond.notify_one() 会唤醒等待的线程。被唤醒的线程会尝试重新获取 mMutex 锁，但此时锁仍然被当前线程持有（因为还没退出作用域），导致被唤醒的线程立即又阻塞了（Hurry up and wait）。 手动解锁 后，再发出通知，等待的线程醒来时可以直接拿到锁，从而提高并发效率。*/
             mCond.notify_one();
-            return std::move(item);
+            return item;
         }
 
         bool empty() const {

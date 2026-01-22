@@ -143,6 +143,15 @@ Java_com_jarvis_facekit_egl_EGLSurfaceView_nativeDestroyShowView(JNIEnv *env,
 
 extern "C"
 JNIEXPORT void JNICALL
+Java_com_jarvis_facekit_egl_EGLSurfaceView_nativeSetScaleType(JNIEnv *env, jobject thiz, jlong show_view_ptr, jint scale_type) {
+    auto showView = EGLDelegate::getInstance().getShowView(show_view_ptr);
+    if (showView) {
+        showView->setScaleType(scale_type);
+    }
+}
+
+extern "C"
+JNIEXPORT void JNICALL
 Java_com_jarvis_facekit_egl_EGLSurfaceView_nativeOnShowViewDraw(JNIEnv *env,
                                                                 jobject thiz,
                                                                 jlong show_view_ptr) {

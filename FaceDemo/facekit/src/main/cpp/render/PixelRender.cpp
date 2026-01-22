@@ -64,7 +64,7 @@ namespace face {
     }
     )";
 
-    static const float VERTICES[] = {
+    static float VERTICES[] = {
             // positions        // texture coords
             -1.0f,  1.0f, 0.0f,  0.0f, 0.0f, // Top-left
             -1.0f, -1.0f, 0.0f,  0.0f, 1.0f, // Bottom-left
@@ -72,11 +72,64 @@ namespace face {
             1.0f, -1.0f, 0.0f,  1.0f, 1.0f  // Bottom-right
     };
 
+    void PixelRender::setScaleType(ScaleType type) {
+        mScaleType = type;
+    }
+
+    void PixelRender::updateVertex(int imageWidth, int imageHeight) {
+        if (mWidth == 0 || mHeight == 0 || imageWidth == 0 || imageHeight == 0) {
+            return;
+        }
+
+        if (mLastImageWidth == imageWidth && mLastImageHeight == imageHeight && mLastScaleType == mScaleType) {
+            return;
+        }
+
+        mLastImageWidth = imageWidth;
+        mLastImageHeight = imageHeight;
+        mLastScaleType = mScaleType;
+
+        float viewAspect = (float)mWidth / mHeight;
+        float imageAspect = (float)imageWidth / imageHeight;
+        float scaleX = 1.0f;
+        float scaleY = 1.0f;
+
+        if (mScaleType == ScaleType::CenterCrop) {
+            if (imageAspect > viewAspect) {
+                // Image is wider than view, crop width
+                scaleX = imageAspect / viewAspect;
+            } else {
+                // Image is taller than view, crop height
+                scaleY = viewAspect / imageAspect;
+            }
+        } else if (mScaleType == ScaleType::FitCenter) {
+            if (imageAspect > viewAspect) {
+                // Image is wider than view, fit width (black bars on top/bottom)
+                scaleY = viewAspect / imageAspect;
+            } else {
+                // Image is taller than view, fit height (black bars on left/right)
+                scaleX = imageAspect / viewAspect;
+            }
+        }
+        // FitXY keeps scaleX = 1.0f, scaleY = 1.0f
+
+        VERTICES[0] = -1.0f * scaleX; VERTICES[1] = 1.0f * scaleY; // Top-left
+        VERTICES[5] = -1.0f * scaleX; VERTICES[6] = -1.0f * scaleY; // Bottom-left
+        VERTICES[10] = 1.0f * scaleX; VERTICES[11] = 1.0f * scaleY; // Top-right
+        VERTICES[15] = 1.0f * scaleX; VERTICES[16] = -1.0f * scaleY; // Bottom-right
+
+        glBindBuffer(GL_ARRAY_BUFFER, mVBO);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(VERTICES), VERTICES);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+
     void PixelRender::onDestroy() {
+        LOGE("PixelRender::%s mInitialized:%d", __FUNCTION__, mInitialized);
         if (mInitialized) {
             if (mVBO) glDeleteBuffers(1, &mVBO);
             if (mVAO) glDeleteVertexArrays(1, &mVAO);
-            if (mTextures[0]) glDeleteTextures(3, mTextures);
+            if (mTextureCount > 0) glDeleteTextures(mTextureCount, mTextures);
+            mTextureCount = 0;
             if (mProgram) glDeleteProgram(mProgram);
             mInitialized = false;
         }
@@ -92,7 +145,6 @@ namespace face {
         if (!mInitialized) {
             glGenVertexArrays(1, &mVAO);
             glGenBuffers(1, &mVBO);
-
             glBindVertexArray(mVAO);
             glBindBuffer(GL_ARRAY_BUFFER, mVBO);
             glBufferData(GL_ARRAY_BUFFER, sizeof(VERTICES), VERTICES, GL_STATIC_DRAW);
@@ -105,40 +157,56 @@ namespace face {
             glEnableVertexAttribArray(1);
 
             glBindVertexArray(0);
-
-            glGenTextures(3, mTextures);
-            for(unsigned int mTexture : mTextures) {
-                glBindTexture(GL_TEXTURE_2D, mTexture);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-            }
+            LOGE("PixelRender::%s mVAO:%d, mVBO:%d", __FUNCTION__, mVAO, mVBO);
             mInitialized = true;
         }
 
         if (mProgram != 0 && mPixelFormat == format) {
             return;
         }
-
         if (mProgram != 0) {
+            LOGE("PixelRender::%s delete oldProgram:%d", __FUNCTION__, mProgram);
             glDeleteProgram(mProgram);
             mProgram = 0;
         }
 
-        mPixelFormat = format;
+        if (mTextureCount > 0) {
+            glDeleteTextures(mTextureCount, mTextures);
+            memset(mTextures, 0, sizeof(mTextures));
+            mTextureCount = 0;
+        }
 
+        int neededTextures = 1;
+        if (format == PixelFormat::I420P) neededTextures = 3;
+        else if (format == PixelFormat::NV21) neededTextures = 2;
+
+        glGenTextures(neededTextures, mTextures);
+        mTextureCount = neededTextures;
+
+        for(int i = 0; i < mTextureCount; i++) {
+            glBindTexture(GL_TEXTURE_2D, mTextures[i]);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        }
+
+
+        LOGE("PixelRender::%s pixelFormat changed: %d => %d, mTextureCount:%d", __FUNCTION__, mPixelFormat, format, mTextureCount);
+        mPixelFormat = format;
         switch (format) {
             case PixelFormat::I420P:
                 mProgram = createProgram(VERTEX_SHADER, FRAGMENT_SHADER_I420);
                 mUniformsI420.textureY = glGetUniformLocation(mProgram, "yTexture");
                 mUniformsI420.textureU = glGetUniformLocation(mProgram, "uTexture");
                 mUniformsI420.textureV = glGetUniformLocation(mProgram, "vTexture");
+                LOGE("PixelRender::%s mProgram:%d UniformLocation{yTexture:%d, uTexture:%d, vTexture:%d}", __FUNCTION__, mProgram, mUniformsI420.textureY, mUniformsI420.textureU, mUniformsI420.textureV);
                 break;
             case PixelFormat::NV21:
                 mProgram = createProgram(VERTEX_SHADER, FRAGMENT_SHADER_NV21);
                 mUniformsNV21.textureY = glGetUniformLocation(mProgram, "yTexture");
                 mUniformsNV21.textureUV = glGetUniformLocation(mProgram, "uvTexture");
+                LOGE("PixelRender::%s mProgram:%d UniformLocation{yTexture:%d, uvTexture:%d}", __FUNCTION__, mProgram, mUniformsI420.textureY, mUniformsNV21.textureUV);
                 break;
             case PixelFormat::RGB:
             case PixelFormat::BGR:
@@ -146,25 +214,38 @@ namespace face {
             case PixelFormat::ARGB:
                 mProgram = createProgram(VERTEX_SHADER, FRAGMENT_SHADER_RGB);
                 mUniformsRGB.textureRGB = glGetUniformLocation(mProgram, "rgbTexture");
+                LOGE("PixelRender::%s mProgram:%d UniformLocation{rgbTexture:%d}", __FUNCTION__, mProgram, mUniformsRGB.textureRGB);
                 break;
             default:
+                LOGE("PixelRender::%s format:%d not handled", __FUNCTION__, format);
                 break;
         }
     }
 
     Error PixelRender::onDrawFrame(const std::shared_ptr<face::PixelData> &data) {
-        if (!data || data->isEmpty()) return Error::Err_InvalidInput;
-        if (mWidth == 0 || mHeight == 0) return Error::Err_InvalidSurface;
-
+        if (!data || data->isEmpty()) {
+            LOGE("PixelRender::%s data[%p] invalid", __FUNCTION__, data.get());
+            return Error::Err_InvalidInput;
+        }
+        if (mWidth == 0 || mHeight == 0) {
+            LOGE("PixelRender::%s surfaceSizeError:%dx%d", __FUNCTION__, mWidth, mHeight);
+            return Error::Err_InvalidSurface;
+        }
         initGL(data->getFormat());
+        updateVertex(data->getResolution().getWidth(), data->getResolution().getHeight());
+        if (mProgram) {
+            glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
 
-        glClear(GL_COLOR_BUFFER_BIT);
+            updateTextures(data);
 
-        updateTextures(data);
-
-        glBindVertexArray(mVAO);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-        glBindVertexArray(0);
+            glBindVertexArray(mVAO);
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            glBindVertexArray(0);
+        } else {
+            LOGE("PixelRender::%s when Program:%d", __FUNCTION__, mProgram);
+            return Error::Err_InvalidProgram;
+        }
         return Error::None;
     }
 
@@ -256,7 +337,7 @@ namespace face {
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED);
                     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
                 }
-
+                LOGE("PixelRender::%s internalFormat:%d, width:%d, height:%d, format:%d, pixels:%p", __FUNCTION__, internalFormat, width, height, format, pixels);
                 glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, GL_UNSIGNED_BYTE, pixels);
                 glUniform1i(mUniformsRGB.textureRGB, 0);
                 break;

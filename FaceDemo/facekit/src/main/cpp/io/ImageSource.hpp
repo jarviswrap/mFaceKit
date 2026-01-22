@@ -25,7 +25,7 @@ namespace face
     private:
         std::shared_ptr<LoopThread> mThread{nullptr};
         std::shared_ptr<PixelData> mCurrentData{nullptr};
-        std::vector<std::string> mImagePathList{nullptr};
+        std::vector<std::string> mImagePathList;
     };
 
 } // face

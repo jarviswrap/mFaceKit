@@ -5,6 +5,7 @@
 #include "EGLDelegate.hpp"
 #include "EGLEnvironment.hpp"
 #include "EGLSurfaceView.hpp"
+#include "ImagePreviewer.hpp"
 #include "common/Log.hpp"
 
 namespace face {
@@ -63,6 +64,9 @@ namespace face {
         auto showView = std::make_shared<EGLSurfaceView>(env, eglSurfaceView, eglEnvironment);
         auto ptr = (int64_t) showView.get();
         mSurfaceViews.emplace(ptr, showView);
+        if (mShowViewListener) {
+            mShowViewListener(showView);
+        }
         mLastShowView = showView;
         return ptr;
     }
@@ -93,7 +97,7 @@ namespace face {
     std::shared_ptr<ImagePreviewer> EGLDelegate::getImagePreviewer() {
         std::lock_guard<std::mutex> lock(mMutex);
         if (!mImagePreviewer) {
-            mImagePreviewer = std::shared_ptr<ImagePreviewer>();
+            mImagePreviewer = std::make_shared<ImagePreviewer>();
         }
         return mImagePreviewer;
     }

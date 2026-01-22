@@ -16,6 +16,8 @@ namespace face {
         EGLSurfaceView(JNIEnv *env, jobject glsurfaceview, std::shared_ptr<EGLEnvironment> environment);
         ~EGLSurfaceView() override;
 
+        void setScaleType(int scaleType);
+
         Error onRequestConsume(uint32_t requestId) override;
         void onDestroy() override; // onRequestConsume和onDestroy都来自生产者线程
 
@@ -26,6 +28,7 @@ namespace face {
         jmethodID mRequestRenderMethodID{nullptr};
         std::shared_ptr<EGLEnvironment> mEnvironment{nullptr};
         std::shared_ptr<PixelRender> mRender{nullptr};
+        std::shared_ptr<PixelData> mCurrentData;
     };
 
 } // face

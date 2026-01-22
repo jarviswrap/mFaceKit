@@ -17,7 +17,7 @@ namespace face
     {
     public:
         PixelData();
-        virtual ~PixelData() = default;
+        virtual ~PixelData();
         explicit PixelData(PixelFormat format);
         PixelData(PixelFormat format, size_t capacity);
         PixelData(const PixelData& other);
@@ -77,7 +77,7 @@ namespace face
  
         void reserve(size_t capacity);
 
-        void setPixelData(uint8_t* pixel, uint32_t width, uint32_t height, PixelFormat format, uint32_t size = 0);
+        void setPixelData(uint8_t* pixel, uint32_t width, uint32_t height, PixelFormat format, uint32_t size = 0, bool copy = false);
 
         uint8_t getPixelByte(size_t index) const;
 

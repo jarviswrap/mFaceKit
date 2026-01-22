@@ -14,7 +14,7 @@ namespace face{
         virtual ~Consumer() = default;
 
         // requestConsume(uint32_t requestId = 1)应该和destroy()相同线程环境（生产者线程）
-        Error requestConsume(uint32_t requestId = 1) {
+        Error requestConsume(uint32_t requestId = UINT32_MAX) {
             mRequestId.store(requestId);
             return onRequestConsume(requestId);
         };

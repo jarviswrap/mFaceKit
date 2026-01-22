@@ -3,21 +3,30 @@
 //
 
 #include "PixelData.hpp"
+#include "Log.hpp"
 #include <cstring>
 #include <algorithm>
 
 namespace face {
     
     // ============ 构造函数 ============
-    
+
+    PixelData::~PixelData() {
+        LOGE("PixelData::%s this:%p", __FUNCTION__, this);
+        clear();
+    }
+
     PixelData::PixelData() : mFormat(PixelFormat::I420P), mPixels(nullptr), 
                             mPixelSize(0), mCapacity(0), mNeedFreePixel(false) {}
     
     PixelData::PixelData(PixelFormat format) 
-        : mFormat(format), mPixels(nullptr), mPixelSize(0), mCapacity(0), mNeedFreePixel(false) {}
+        : mFormat(format), mPixels(nullptr), mPixelSize(0), mCapacity(0), mNeedFreePixel(false) {
+        LOGE("PixelData:: format:%d", format);
+    }
     
     PixelData::PixelData(PixelFormat format, size_t capacity) 
         : mFormat(format), mPixelSize(0), mNeedFreePixel(true) {
+        LOGE("PixelData:: format:%d capacity:%zu", format, capacity);
         mPixels = static_cast<uint8_t*>(malloc(capacity));
         mCapacity = capacity;
     }
@@ -28,6 +37,7 @@ namespace face {
         : mFormat(other.mFormat), mPixelSize(other.mPixelSize), 
           mCapacity(other.mPixelSize), mNeedFreePixel(true), 
           mResolution(other.mResolution), mLabel(other.mLabel) {
+        LOGE("PixelData:: operator=(const PixelData& other)");
         if (other.mPixelSize > 0 && other.mPixels) {
             mPixels = static_cast<uint8_t*>(malloc(other.mPixelSize));
             std::memcpy(mPixels, other.mPixels, other.mPixelSize);
@@ -37,7 +47,10 @@ namespace face {
     }
     
     PixelData& PixelData::operator=(const PixelData& other) {
-        if (this != &other) {
+        auto compare = this != &other;
+        LOGE("PixelData:: operator=(const PixelData& other), compare:%d", compare);
+
+        if (compare) {
             mFormat = other.mFormat;
             mResolution = other.mResolution;
             mLabel = other.mLabel;
@@ -65,6 +78,7 @@ namespace face {
           mNeedFreePixel(other.mNeedFreePixel), 
           mResolution(std::move(other.mResolution)), 
           mLabel(std::move(other.mLabel)) {
+        LOGE("PixelData:: (PixelData&& other");
         other.mPixels = nullptr;
         other.mPixelSize = 0;
         other.mCapacity = 0;
@@ -72,6 +86,8 @@ namespace face {
     }
     
     PixelData& PixelData::operator=(PixelData&& other) noexcept {
+        auto compare = this != &other;
+        LOGE("PixelData:: operator=(PixelData&& other), compare:%d", compare);
         if (this != &other) {
             clear();
             mFormat = other.mFormat;
@@ -131,7 +147,7 @@ namespace face {
             if (mPixelSize + size > mCapacity) {
                 // 需要扩容
                 uint32_t newCapacity = mPixelSize + size;
-                uint8_t* newPixels = static_cast<uint8_t*>(malloc(newCapacity));
+                auto newPixels = static_cast<uint8_t*>(malloc(newCapacity));
                 if (mPixels && mPixelSize > 0) {
                     std::memcpy(newPixels, mPixels, mPixelSize);
                     if (mNeedFreePixel) {
@@ -151,13 +167,19 @@ namespace face {
                                  uint32_t width,
                                  uint32_t height,
                                  face::PixelFormat format,
-                                 uint32_t size) {
+                                 uint32_t size,
+                                 bool copy) {
         uint32_t pixelSize = width * height * (uint32_t)getBytesPerPixel(format);
         if (size == 0) {
             size = pixelSize;
         }
-        
-        mPixels = pixel;
+        LOGE("PixelData::setPixelData,pixel:%p, %dx%d, format:%d, size:%d, pixelSize:%d", pixel, width, height, format, size, pixelSize);
+        if (copy && size > mCapacity) {
+            reserve(size);
+            std::memcpy(mPixels, pixel, size);
+        } else {
+            mPixels = pixel;
+        }
         mResolution.setSize(width, height);
         mFormat = format;
         mCapacity = size;

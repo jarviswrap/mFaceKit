@@ -26,7 +26,8 @@ namespace face {
         Err_InvalidSurface     = -8,
         Err_InvalidConsumer    = -9,
         Err_InvalidShowView    = -10,
-        Err_StartTwice         = -11
+        Err_StartTwice         = -11,
+        Err_InvalidProgram     = -12,
     };
 }
 #endif //FACEDEMO_COMMON_HPP

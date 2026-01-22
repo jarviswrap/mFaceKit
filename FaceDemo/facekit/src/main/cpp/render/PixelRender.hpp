@@ -10,6 +10,12 @@
 
 namespace face {
 
+    enum class ScaleType {
+        FitXY,
+        CenterCrop,
+        FitCenter
+    };
+
     class PixelRender : public Render<PixelData>{
 
     public:
@@ -19,6 +25,7 @@ namespace face {
         void onSurfaceChanged(int width, int height) override;
         Error onDrawFrame(const std::shared_ptr<face::PixelData> &data) override;
         void onDestroy() override;
+        void setScaleType(ScaleType type);
 
     private:
         void initGL(PixelFormat format);
@@ -27,10 +34,17 @@ namespace face {
         GLuint loadShader(GLenum type, const char* shaderCode);
         GLuint createProgram(const char* vertexSource, const char* fragmentSource);
         void updateTextures(const std::shared_ptr<PixelData>& data);
+        void updateVertex(int imageWidth, int imageHeight);
 
         bool mInitialized{false};
         int mWidth{0};
         int mHeight{0};
+        ScaleType mScaleType{ScaleType::FitCenter};
+
+        // Cache for updateVertex optimization
+        int mLastImageWidth{0};
+        int mLastImageHeight{0};
+        ScaleType mLastScaleType{ScaleType::FitCenter};
 
         // OpenGL resources
         GLuint mProgram{0};
@@ -41,6 +55,7 @@ namespace face {
         
         // Textures
         GLuint mTextures[3]{0}; // Y, U, V or RGB
+        int mTextureCount{0}; // Actual number of textures in use
         
         // Uniform locations
         struct {

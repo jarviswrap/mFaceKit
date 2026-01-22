@@ -9,8 +9,6 @@
 #include "io/Destination.hpp"
 #include "common/LimitQueue.hpp"
 #include "common/LoopThread.h"
-#include "common/Log.hpp"
-
 #include <vector>
 
 namespace face{
@@ -28,8 +26,12 @@ namespace face{
             mSource = source;
             mDestination = destination;
             mProcessor = processor;
-            mThread = std::make_shared<LoopThread>();
+            mThread = std::make_shared<LoopThread>("Pipeline");
             mThread->setLoopMode(LoopMode::REQUEST);
+
+            mInputQueue = std::make_shared<LimitQueue<I>>();
+            mInputQueue->setMaxSize(1);
+            mInputQueue->setLimitPolicy(LimitPolicy::DropWhenBusy);
 
             std::weak_ptr<LimitQueue<I>> weakQueue(mInputQueue);
             std::weak_ptr<Processor<I,O>> weakProcessor(mProcessor);
@@ -54,9 +56,6 @@ namespace face{
                 dest->destroy();
             });
 
-            mInputQueue = std::make_shared<LimitQueue<I>>();
-            mInputQueue->setMaxSize(1);
-            mInputQueue->setLimitPolicy(LimitPolicy::DropWhenBusy);
             return onStart();
         };
 
@@ -81,7 +80,6 @@ namespace face{
                     notifyDataChanged();
                 }
             });
-
             mThread->start();
             return Error::None;
         };

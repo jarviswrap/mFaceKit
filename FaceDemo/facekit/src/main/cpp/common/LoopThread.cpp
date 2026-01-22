@@ -3,11 +3,13 @@
 //
 
 #include "LoopThread.h"
+#include "Log.hpp"
 #include <chrono>
+#include <pthread.h>
 
 namespace face
 {
-    LoopThread::LoopThread() = default;
+    LoopThread::LoopThread(const std::string& name) : mThreadName(name) {}
     
     LoopThread::~LoopThread() {
         stop();
@@ -34,28 +36,29 @@ namespace face
     
     bool LoopThread::start() {
         // 如果已经在运行，返回false
+        LOGE("LoopThread::%s %s", __FUNCTION__, mThreadName.c_str());
         if (mRunning.load() || mStartRunning.load()) {
+            LOGE("LoopThread::%s %s twice error", __FUNCTION__, mThreadName.c_str());
             return false;
         }
         mStartRunning.store(true);
         // 重置停止标志和请求ID
         mStopRequested.store(false);
         mCurrentRequestId.store(0);
-        
         // 创建并启动线程
         mThread = std::thread(&LoopThread::threadMain, this);
-        
         return true;
     }
     
     void LoopThread::stop() {
+        LOGE("LoopThread::%s %s", __FUNCTION__, mThreadName.c_str());
         requestStop();
         join();
     }
     
     void LoopThread::requestStop() {
+        LOGE("LoopThread::%s %s, mRunning:%d", __FUNCTION__, mThreadName.c_str(), mRunning.load());
         mStopRequested.store(true);
-        
         // 唤醒可能在等待的线程
         mCondVar.notify_all();
     }
@@ -108,6 +111,9 @@ namespace face
     
     void LoopThread::requestLoop(uint32_t requestId) {
         if (mLoopMode.load() == LoopMode::REQUEST) {
+            if (!mRunning.load()) {
+                LOGE("LoopThread::%s when thread not running, requestId:%d", __FUNCTION__, requestId);
+            }
             mCurrentRequestId.store(requestId);
             mCondVar.notify_one();
         }
@@ -116,6 +122,13 @@ namespace face
     // ============ 线程主函数 ============
     
     void LoopThread::threadMain() {
+        if (!mThreadName.empty()) {
+#if defined(__APPLE__)
+            pthread_setname_np(mThreadName.c_str());
+#elif defined(__ANDROID__)
+            pthread_setname_np(pthread_self(), mThreadName.c_str());
+#endif
+        }
         // 标记线程已启动
         mStartRunning.store(false);
         mRunning.store(true);
@@ -178,7 +191,6 @@ namespace face
                 mOnStopListener();
             }
         }
-        
         // 标记线程已停止
         mRunning.store(false);
     }

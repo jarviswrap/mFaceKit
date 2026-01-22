@@ -10,7 +10,7 @@
 #include <mutex>
 #include <jni.h>
 #include <android/native_window.h>
-
+#include "common/Common.hpp"
 namespace face {
     class ImagePreviewer;
     class EGLEnvironment;
@@ -30,7 +30,7 @@ namespace face {
         int64_t createEGLSurfaceView(JNIEnv* env, jobject eglSurfaceView, int64_t eglEnvironmentPtr);
         std::shared_ptr<EGLSurfaceView> getShowView(int64_t surfaceview_ptr = 0);
         void removeEGLShowView(int64_t surfaceview_ptr);
-
+        void setShowViewListener(DataListener<std::shared_ptr<EGLSurfaceView>> listener) { mShowViewListener = listener; }
         std::shared_ptr<ImagePreviewer> getImagePreviewer();
     private:
         EGLDelegate() = default;
@@ -45,6 +45,8 @@ namespace face {
         std::shared_ptr<EGLSurfaceView> mLastShowView{nullptr};
 
         std::shared_ptr<ImagePreviewer> mImagePreviewer{nullptr};
+
+        DataListener<std::shared_ptr<EGLSurfaceView>> mShowViewListener;
     };
 
 } // face
