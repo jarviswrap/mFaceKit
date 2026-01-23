@@ -113,6 +113,9 @@ namespace face {
         }
         // FitXY keeps scaleX = 1.0f, scaleY = 1.0f
 
+        mLastScaleX = scaleX;
+        mLastScaleY = scaleY;
+
         VERTICES[0] = -1.0f * scaleX; VERTICES[1] = 1.0f * scaleY; // Top-left
         VERTICES[5] = -1.0f * scaleX; VERTICES[6] = -1.0f * scaleY; // Bottom-left
         VERTICES[10] = 1.0f * scaleX; VERTICES[11] = 1.0f * scaleY; // Top-right
@@ -132,6 +135,10 @@ namespace face {
             mTextureCount = 0;
             if (mProgram) glDeleteProgram(mProgram);
             mInitialized = false;
+        }
+        if (mBBoxRender) {
+            mBBoxRender->onDestroy();
+            mBBoxRender = nullptr;
         }
     }
 
@@ -242,6 +249,15 @@ namespace face {
             glBindVertexArray(mVAO);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
             glBindVertexArray(0);
+
+            if (!data->bboxes.empty()) {
+                if (!mBBoxRender) {
+                    mBBoxRender = std::make_shared<BBoxRender>();
+                }
+                mBBoxRender->init();
+                mBBoxRender->draw(data->bboxes, mWidth, mHeight, data->getResolution().getWidth(), data->getResolution().getHeight(), mLastScaleX, mLastScaleY);
+            }
+
         } else {
             LOGE("PixelRender::%s when Program:%d", __FUNCTION__, mProgram);
             return Error::Err_InvalidProgram;

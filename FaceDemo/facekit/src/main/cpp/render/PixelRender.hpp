@@ -7,6 +7,7 @@
 #include "Render.hpp"
 #include "common/PixelData.hpp"
 #include <GLES3/gl3.h>
+#include "BBoxRender.hpp"
 
 namespace face {
 
@@ -45,6 +46,8 @@ namespace face {
         int mLastImageWidth{0};
         int mLastImageHeight{0};
         ScaleType mLastScaleType{ScaleType::FitCenter};
+        float mLastScaleX{1.0f};
+        float mLastScaleY{1.0f};
 
         // OpenGL resources
         GLuint mProgram{0};
@@ -72,6 +75,8 @@ namespace face {
         struct {
             GLint textureRGB{-1};
         } mUniformsRGB;
+
+        std::shared_ptr<BBoxRender> mBBoxRender{nullptr};
     };
 
 } // face

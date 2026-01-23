@@ -31,7 +31,7 @@ namespace face {
         std::shared_ptr<EGLSurfaceView> getShowView(int64_t surfaceview_ptr = 0);
         void removeEGLShowView(int64_t surfaceview_ptr);
         void setShowViewListener(DataListener<std::shared_ptr<EGLSurfaceView>> listener) { mShowViewListener = listener; }
-        std::shared_ptr<ImagePreviewer> getImagePreviewer();
+
     private:
         EGLDelegate() = default;
         ~EGLDelegate() = default;
@@ -43,8 +43,6 @@ namespace face {
 
         std::unordered_map<int64_t, std::shared_ptr<EGLSurfaceView>> mSurfaceViews;
         std::shared_ptr<EGLSurfaceView> mLastShowView{nullptr};
-
-        std::shared_ptr<ImagePreviewer> mImagePreviewer{nullptr};
 
         DataListener<std::shared_ptr<EGLSurfaceView>> mShowViewListener;
     };

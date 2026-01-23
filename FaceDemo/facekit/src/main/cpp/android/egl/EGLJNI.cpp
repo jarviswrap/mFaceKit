@@ -8,7 +8,7 @@
 #include "android/AndroidUtils.hpp"
 #include "EGLEnvironment.hpp"
 #include "EGLSurfaceView.hpp"
-#include "ImagePreviewer.hpp"
+#include "android/example/ImagePreviewer.hpp"
 #include "common/Log.hpp"
 
 using namespace face;
@@ -163,8 +163,17 @@ Java_com_jarvis_facekit_egl_EGLSurfaceView_nativeOnShowViewDraw(JNIEnv *env,
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_jarvis_facekit_egl_EGLSurfaceView_nativeShowImage(JNIEnv *env, jobject thiz, jstring file_path) {
-    auto imagePreviewer = EGLDelegate::getInstance().getImagePreviewer();
-    imagePreviewer->start();
-    imagePreviewer->requestLoadImage(AndroidUtils::readStringUTF(env, file_path));
+Java_com_jarvis_facekit_egl_EGLSurfaceView_demoShowImage(JNIEnv *env, jobject thiz, jstring file_path) {
+    static std::shared_ptr<ImagePreviewer> imagePreviewer = nullptr;
+    if (file_path) {
+        if (!imagePreviewer) {
+            imagePreviewer = std::make_shared<ImagePreviewer>();
+        }
+        imagePreviewer->start();
+        imagePreviewer->requestLoadImage(AndroidUtils::readStringUTF(env, file_path));
+    } else {
+        if (imagePreviewer) {
+            imagePreviewer.reset();
+        }
+    }
 }

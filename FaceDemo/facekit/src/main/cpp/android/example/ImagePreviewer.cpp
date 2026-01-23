@@ -8,14 +8,19 @@
 #include "common/Log.hpp"
 
 namespace face {
-    ImagePreviewer::ImagePreviewer() = default;
+    ImagePreviewer::ImagePreviewer(std::shared_ptr<Processor<PixelData, PixelData>> processor): mProcessor(processor) {
+        LOGE("ImagePreviewer::%s", __FUNCTION__ );
+    }
 
-    ImagePreviewer::~ImagePreviewer() = default;
+    ImagePreviewer::~ImagePreviewer() {
+        LOGE("ImagePreviewer::%s", __FUNCTION__ );
+    }
 
     Error ImagePreviewer::start() {
         if (mSource) {
             return Error::Err_InvalidShowView;
         }
+        LOGE("ImagePreviewer::%s", __FUNCTION__ );
         mSource = std::make_shared<ImageSource>();
         mImagePipeline = std::make_shared<Pipeline<PixelData, PixelData>>();
         mAndroidDisplayDestination = std::make_shared<Destination<PixelData>>(EGLDelegate::getInstance().getShowView());
@@ -25,16 +30,17 @@ namespace face {
                 dest->setConsumer(showView);
             }
         });
-        return mImagePipeline->start(mSource, mAndroidDisplayDestination, std::make_shared<PassProcessor<PixelData>>());
+        return mImagePipeline->start(mSource, mAndroidDisplayDestination, mProcessor? mProcessor: std::make_shared<PassProcessor<PixelData>>());
         return Error::Err_InvalidShowView;
     }
 
     void ImagePreviewer::requestLoadImage(const std::string &imagePath) {
-        LOGE("ImagePreviewer::%s", __FUNCTION__ );
+        LOGE("ImagePreviewer::%s, %s", __FUNCTION__, imagePath.c_str());
         mSource->requestLoadImage(imagePath);
     }
 
     Error ImagePreviewer::stop() {
+        LOGE("ImagePreviewer::%s", __FUNCTION__ );
         return mImagePipeline->stop();
     }
 } // face

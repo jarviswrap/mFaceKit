@@ -32,6 +32,8 @@ public enum FaceKit {
      */
     public native String stringFromJNI();
 
-    public native void setModelDir(String filePath);
+    public native void setModelDir(String modelPath);
+
+    public native void showImage(String imagePath);
 
 }

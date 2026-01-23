@@ -14,7 +14,7 @@ namespace face {
 
     class ImagePreviewer{
     public:
-        ImagePreviewer();
+        ImagePreviewer(std::shared_ptr<Processor<PixelData, PixelData>> processor = nullptr);
         ~ImagePreviewer();
         Error start();
         void requestLoadImage(const std::string& imagePath);
@@ -22,7 +22,8 @@ namespace face {
     private:
         std::shared_ptr<Pipeline<PixelData, PixelData>> mImagePipeline{nullptr};
         std::shared_ptr<ImageSource> mSource{nullptr};
-        std::shared_ptr<Destination<PixelData>> mAndroidDisplayDestination;
+        std::shared_ptr<Destination<PixelData>> mAndroidDisplayDestination{nullptr};
+        std::shared_ptr<Processor<PixelData, PixelData>> mProcessor{nullptr};
     };
 
 } // face

@@ -5,7 +5,7 @@
 #include "EGLDelegate.hpp"
 #include "EGLEnvironment.hpp"
 #include "EGLSurfaceView.hpp"
-#include "ImagePreviewer.hpp"
+#include "android/example/ImagePreviewer.hpp"
 #include "common/Log.hpp"
 
 namespace face {
@@ -93,14 +93,5 @@ namespace face {
             }
         }
     }
-
-    std::shared_ptr<ImagePreviewer> EGLDelegate::getImagePreviewer() {
-        std::lock_guard<std::mutex> lock(mMutex);
-        if (!mImagePreviewer) {
-            mImagePreviewer = std::make_shared<ImagePreviewer>();
-        }
-        return mImagePreviewer;
-    }
-
 
 } // face

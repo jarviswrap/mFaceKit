@@ -36,7 +36,7 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
         ${RENDER_SOURCES}
         ${CORE_SOURCES}
         ${IO_SOURCES}
-        )
+)
 if(ANDROID)
     target_sources(${CMAKE_PROJECT_NAME} PRIVATE ${ANDROID_SOURCES})
 endif()

@@ -45,7 +45,7 @@ namespace face{
                     if (inputData && processor) {
                         auto destination = weakDestination.lock();
                         if (destination) {
-                            destination->output(processor->onProcess(std::move(inputData)));
+                            destination->output(processor->process(inputData));
                         }
                     }
                 }

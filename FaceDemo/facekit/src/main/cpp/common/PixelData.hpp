@@ -7,6 +7,7 @@
 #include <vector>
 #include <cstring>
 #include "common/Size.hpp"
+#include "common/FaceBox.hpp"
 namespace face
 {
     enum class PixelFormat: uint8_t {
@@ -99,6 +100,8 @@ namespace face
         bool validateDataSize() const;
 
         const Size<uint16_t>& getResolution() const { return mResolution; };
+
+        std::vector<BBox> bboxes;
     private:
         PixelFormat mFormat{PixelFormat::I420P};
         uint8_t *mPixels{nullptr};
