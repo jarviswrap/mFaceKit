@@ -8,7 +8,8 @@
 #include "common/PixelData.hpp"
 #include <GLES3/gl3.h>
 #include "BBoxRender.hpp"
-#include "FaceLiftRender.hpp"
+#include "FaceMeshRender.hpp"
+#include "DelaunayDebugRender.hpp"
 
 namespace face {
 
@@ -78,8 +79,8 @@ namespace face {
         } mUniformsRGB;
 
         std::shared_ptr<BBoxRender> mBBoxRender{nullptr};
-        std::shared_ptr<FaceLiftRender> mFaceLiftRender{nullptr};
-        
+        std::shared_ptr<FaceMeshRender> mFaceRender{nullptr};
+        std::shared_ptr<DelaunayDebugRender> mDelaunayRender{nullptr};
         // FBO for Off-screen rendering (Face Lift)
         GLuint mFBO{0};
         GLuint mFBOTexture{0};

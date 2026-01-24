@@ -284,16 +284,21 @@ namespace face {
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         
-        if (!mFaceLiftRender) {
-            mFaceLiftRender = std::make_shared<FaceLiftRender>();
+        if (!mFaceRender) {
+            mFaceRender = std::make_shared<FaceMeshRender>();
         }
-        mFaceLiftRender->init();
-        mFaceLiftRender->setViewSize(mWidth, mHeight);
-        mFaceLiftRender->setIntensity(data->faceListIntensity);
+        mFaceRender->init();
+        mFaceRender->setViewSize(mWidth, mHeight);
+        mFaceRender->setIntensity(data->faceListIntensity);
 
+        if (!mDelaunayRender) {
+            mDelaunayRender = std::make_shared<DelaunayDebugRender>();
+        }
+        mDelaunayRender->init();
+        mDelaunayRender->setViewSize(mWidth, mHeight);
         // Calculate Viewport based on ScaleType
         // Similar to updateVertex logic but applying to Viewport instead of Vertices
-        // FaceLiftRender draws a full screen quad [-1, 1], so Viewport controls the placement
+        // FaceMeshRender draws a full screen quad [-1, 1], so Viewport controls the placement
         
         int vw = mWidth;
         int vh = mHeight;
@@ -332,9 +337,10 @@ namespace face {
         
         glViewport(x, y, vw, vh);
         
-        mFaceLiftRender->draw(mFBOTexture, data->bboxes, imageWidth, imageHeight);
-        
+
+
         if (!data->bboxes.empty()) {
+            mFaceRender->draw(mFBOTexture, data->bboxes, imageWidth, imageHeight);
              if (!mBBoxRender) {
                  mBBoxRender = std::make_shared<BBoxRender>();
              }
@@ -342,6 +348,7 @@ namespace face {
              // BBoxRender draws in NDC [-1, 1] relative to the current Viewport
              // Since we set Viewport to match the image area, NDC maps correctly to image coordinates
              mBBoxRender->draw(data->bboxes, vw, vh, imageWidth, imageHeight, 1.0f, 1.0f);
+             mDelaunayRender->draw(data->bboxes, imageWidth, imageHeight);
         }
 
         return Error::None;
