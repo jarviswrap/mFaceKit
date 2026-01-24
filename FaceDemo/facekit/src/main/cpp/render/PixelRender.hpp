@@ -37,19 +37,11 @@ namespace face {
         GLuint loadShader(GLenum type, const char* shaderCode);
         GLuint createProgram(const char* vertexSource, const char* fragmentSource);
         void updateTextures(const std::shared_ptr<PixelData>& data);
-        void updateVertex(int imageWidth, int imageHeight);
 
         bool mInitialized{false};
         int mWidth{0};
         int mHeight{0};
         ScaleType mScaleType{ScaleType::FitCenter};
-
-        // Cache for updateVertex optimization
-        int mLastImageWidth{0};
-        int mLastImageHeight{0};
-        ScaleType mLastScaleType{ScaleType::FitCenter};
-        float mLastScaleX{1.0f};
-        float mLastScaleY{1.0f};
 
         // OpenGL resources
         GLuint mProgram{0};

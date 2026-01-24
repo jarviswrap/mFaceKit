@@ -76,56 +76,6 @@ namespace face {
         mScaleType = type;
     }
 
-    void PixelRender::updateVertex(int imageWidth, int imageHeight) {
-        if (mWidth == 0 || mHeight == 0 || imageWidth == 0 || imageHeight == 0) {
-            return;
-        }
-
-        if (mLastImageWidth == imageWidth && mLastImageHeight == imageHeight && mLastScaleType == mScaleType) {
-            return;
-        }
-
-        mLastImageWidth = imageWidth;
-        mLastImageHeight = imageHeight;
-        mLastScaleType = mScaleType;
-
-        float viewAspect = (float)mWidth / mHeight;
-        float imageAspect = (float)imageWidth / imageHeight;
-        float scaleX = 1.0f;
-        float scaleY = 1.0f;
-
-        if (mScaleType == ScaleType::CenterCrop) {
-            if (imageAspect > viewAspect) {
-                // Image is wider than view, crop width
-                scaleX = imageAspect / viewAspect;
-            } else {
-                // Image is taller than view, crop height
-                scaleY = viewAspect / imageAspect;
-            }
-        } else if (mScaleType == ScaleType::FitCenter) {
-            if (imageAspect > viewAspect) {
-                // Image is wider than view, fit width (black bars on top/bottom)
-                scaleY = viewAspect / imageAspect;
-            } else {
-                // Image is taller than view, fit height (black bars on left/right)
-                scaleX = imageAspect / viewAspect;
-            }
-        }
-        // FitXY keeps scaleX = 1.0f, scaleY = 1.0f
-
-        mLastScaleX = scaleX;
-        mLastScaleY = scaleY;
-
-        VERTICES[0] = -1.0f * scaleX; VERTICES[1] = 1.0f * scaleY; // Top-left
-        VERTICES[5] = -1.0f * scaleX; VERTICES[6] = -1.0f * scaleY; // Bottom-left
-        VERTICES[10] = 1.0f * scaleX; VERTICES[11] = 1.0f * scaleY; // Top-right
-        VERTICES[15] = 1.0f * scaleX; VERTICES[16] = -1.0f * scaleY; // Bottom-right
-
-        glBindBuffer(GL_ARRAY_BUFFER, mVBO);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(VERTICES), VERTICES);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-    }
-
     void PixelRender::onDestroy() {
         LOGE("PixelRender::%s mInitialized:%d", __FUNCTION__, mInitialized);
         if (mInitialized) {

@@ -55,7 +55,33 @@
 *   **精准控制**: 变形直接作用于定义脸型的关键点上，效果比操作无关的规则网格点更直接。
 *   **连贯性**: 背景点（如屏幕角点）不受变形力影响（距离太远），通过 Delaunay 三角形的连接，脸颊的变形会平滑过渡到静止的背景，实现自然的拉伸。
 
-## 4. 调试工具 (DelaunayDebugRender)
+## 4. 着色器逻辑 (Shader Logic)
+
+### 4.1 Vertex Shader (`MESH_VERTEX_SHADER`)
+顶点着色器是变形的核心。它接收从 Delaunay 剖分生成的顶点数据（主要是人脸关键点），并计算它们的位移。
+
+*   **输入**:
+    *   `aPosition`: 顶点的屏幕坐标 (NDC)。
+    *   `aTexCoord`: 顶点的纹理坐标。
+    *   `uFaces`: 包含人脸信息的 Uniform 数组（脸颊点、中心点、影响半径）。
+*   **逻辑**:
+    1.  遍历每一张有效人脸。
+    2.  计算当前顶点 `aTexCoord` 与左/右脸颊目标点 `cheek` 的距离。
+    3.  **判定**: 如果距离小于影响半径 `radius`，说明该顶点是脸颊及其附近的点。
+    4.  **计算偏移**:
+        *   `alpha = smoothstep(r, 0.0, dist)`: 距离越近，权重越大。
+        *   `dir = normalize(center - cheek)`: 位移方向指向脸部中心。
+        *   `offset += dir * alpha * intensity`: 累加位移量。
+    5.  **应用**: `gl_Position = vec4(pos + offset * 2.0, 0.0, 1.0)`。注意因为 `offset` 是在归一化空间计算的，应用到 NDC 空间时需要乘以 2。
+
+### 4.2 Fragment Shader (`MESH_FRAGMENT_SHADER`)
+片元着色器非常简单，因为复杂的几何变形已经在顶点阶段完成了。
+
+*   **逻辑**:
+    *   直接使用插值后的 `vTexCoord` 对纹理进行采样。
+    *   由于网格发生了几何变形，GPU 在光栅化时会自动对三角形内部的纹理坐标进行正确插值，从而实现纹理的拉伸或压缩效果。
+
+## 5. 调试工具 (DelaunayDebugRender)
 
 为了验证剖分结果，提供了 `DelaunayDebugRender` 类。
 *   **功能**: 以线框模式 (GL_LINES) 绘制生成的三角形网格。

@@ -126,7 +126,6 @@ namespace face {
 
         // 4. Draw
         glUseProgram(mProgram);
-        glViewport(0, 0, mViewWidth, mViewHeight);
         
         // Draw Green Lines
         glLineWidth(2.0f); // Note: lineWidth > 1.0 might not be supported on all ES 3.0 implementations

@@ -45,7 +45,7 @@ namespace face {
 
         int mViewWidth{0};
         int mViewHeight{0};
-        float mIntensity{0.5f};
+        float mIntensity{0.05f};
 
         // Uniform Locations
         GLint mTextureLocation{-1};

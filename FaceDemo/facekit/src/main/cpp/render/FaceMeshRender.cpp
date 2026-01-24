@@ -20,19 +20,21 @@ namespace face {
     
     uniform float uIntensity;
     
+    const int CHEEK_COUNT = 12;
     struct FaceInfo {
         int valid;
-        vec2 leftCheek;  // Normalized [0, 1]
-        vec2 rightCheek; // Normalized [0, 1]
-        vec2 center;     // Normalized [0, 1]
-        float radius;    // Normalized
+        int leftCount;
+        int rightCount;
+        vec2 leftCheeks[CHEEK_COUNT];
+        vec2 rightCheeks[CHEEK_COUNT];
+        vec2 center;
+        float radius;
+        float falloff;
     };
     uniform FaceInfo uFaces[5];
 
     void main() {
         vec2 pos = aPosition.xy;
-        // Convert NDC [-1, 1] to Normalized [0, 1] for calculation
-        vec2 normPos = pos * 0.5 + 0.5;
         // Adjust Y direction if needed (OpenGL NDC Y is up, Image Y is usually down, 
         // but here we assume texture is mapped correctly so 0,0 is bottom-left or top-left depending on setup.
         // Let's assume input coordinates match aTexCoord system.)
@@ -46,25 +48,30 @@ namespace face {
             if (uFaces[i].valid > 0) {
                 vec2 center = uFaces[i].center;
                 float r = uFaces[i].radius;
+                float rOuter = r * uFaces[i].falloff;
+                int leftCount = uFaces[i].leftCount;
+                int rightCount = uFaces[i].rightCount;
                 
-                // Left Cheek Warp
-                vec2 leftCheek = uFaces[i].leftCheek;
-                float dL = distance(currentPos, leftCheek);
-                if (dL < r) {
-                    float alpha = smoothstep(r, 0.0, dL);
-                    // Direction: Cheek -> Center (Push IN)
-                    vec2 dir = normalize(center - leftCheek);
-                    // Move vertex towards center
-                    offset += dir * alpha * uIntensity * 0.05; 
+                for (int j = 0; j < CHEEK_COUNT; j++) {
+                    if (j >= leftCount) break;
+                    vec2 cheek = uFaces[i].leftCheeks[j];
+                    float d = distance(currentPos, cheek);
+                    if (d < rOuter) {
+                        float alpha = smoothstep(rOuter, r, d);
+                        vec2 dir = normalize(center - cheek);
+                        offset += dir * alpha * uIntensity * 0.05;
+                    }
                 }
                 
-                // Right Cheek Warp
-                vec2 rightCheek = uFaces[i].rightCheek;
-                float dR = distance(currentPos, rightCheek);
-                if (dR < r) {
-                    float alpha = smoothstep(r, 0.0, dR);
-                    vec2 dir = normalize(center - rightCheek);
-                    offset += dir * alpha * uIntensity * 0.05;
+                for (int j = 0; j < CHEEK_COUNT; j++) {
+                    if (j >= rightCount) break;
+                    vec2 cheek = uFaces[i].rightCheeks[j];
+                    float d = distance(currentPos, cheek);
+                    if (d < rOuter) {
+                        float alpha = smoothstep(rOuter, r, d);
+                        vec2 dir = normalize(center - cheek);
+                        offset += dir * alpha * uIntensity * 0.05;
+                    }
                 }
             }
         }
@@ -147,7 +154,6 @@ namespace face {
         if (!mInitialized || mViewWidth == 0 || mViewHeight == 0) return;
 
         glUseProgram(mProgram);
-        glViewport(0, 0, mViewWidth, mViewHeight);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, textureId);
@@ -235,27 +241,65 @@ namespace face {
         for (const auto& bbox : bboxes) {
             if (count >= MAX_FACES) break;
             if (bbox.keypoints.size() == 98) {
-                auto normStandard = [&](float x, float y) -> std::pair<float, float> {
-                     return {x / imageWidth, y / imageHeight};
+                auto normPoint = [&](int idx) -> std::pair<float, float> {
+                    const auto& pt = bbox.keypoints[idx];
+                    float x = pt.x / imageWidth;
+                    float y = pt.y / imageHeight;
+                    return {x, 1.0f - y};
                 };
-                auto pLeft = normStandard(bbox.keypoints[4].x, bbox.keypoints[4].y);
-                auto pRight = normStandard(bbox.keypoints[28].x, bbox.keypoints[28].y);
-                auto pCenter = normStandard(bbox.keypoints[54].x, bbox.keypoints[54].y);
-                
-                // Flip Y for shader calculation (0=bottom)
-                pLeft.second = 1.0f - pLeft.second;
-                pRight.second = 1.0f - pRight.second;
-                pCenter.second = 1.0f - pCenter.second;
+                auto meanPoint = [&](const std::vector<int>& indices) -> std::pair<float, float> {
+                    float sx = 0.0f;
+                    float sy = 0.0f;
+                    int n = 0;
+                    for (int idx : indices) {
+                        if (idx >= 0 && idx < static_cast<int>(bbox.keypoints.size())) {
+                            auto p = normPoint(idx);
+                            sx += p.first;
+                            sy += p.second;
+                            n++;
+                        }
+                    }
+                    if (n == 0) {
+                        return normPoint(54);
+                    }
+                    return {sx / n, sy / n};
+                };
+                auto collectPoints = [&](const std::vector<int>& indices) -> std::vector<std::pair<float, float>> {
+                    std::vector<std::pair<float, float>> pts;
+                    pts.reserve(indices.size());
+                    for (int idx : indices) {
+                        if (idx >= 0 && idx < static_cast<int>(bbox.keypoints.size())) {
+                            pts.push_back(normPoint(idx));
+                        }
+                    }
+                    return pts;
+                };
+                std::vector<int> leftIndices{2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13};
+                std::vector<int> rightIndices{19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30};
+                std::vector<int> centerIndices{57, 79, 90, 94, 85};
+                auto leftPoints = collectPoints(leftIndices);
+                auto rightPoints = collectPoints(rightIndices);
+                auto pCenter = meanPoint(centerIndices);
 
                 float faceWidth = (bbox.x2 - bbox.x1) / imageWidth;
                 float radius = faceWidth * 0.35f;
+                float falloff = 1.6f;
 
                 std::string base = "uFaces[" + std::to_string(count) + "]";
                 glUniform1i(glGetUniformLocation(mProgram, (base + ".valid").c_str()), 1);
-                glUniform2f(glGetUniformLocation(mProgram, (base + ".leftCheek").c_str()), pLeft.first, pLeft.second);
-                glUniform2f(glGetUniformLocation(mProgram, (base + ".rightCheek").c_str()), pRight.first, pRight.second);
+                glUniform1i(glGetUniformLocation(mProgram, (base + ".leftCount").c_str()), static_cast<int>(leftPoints.size()));
+                glUniform1i(glGetUniformLocation(mProgram, (base + ".rightCount").c_str()), static_cast<int>(rightPoints.size()));
+                for (int j = 0; j < static_cast<int>(leftPoints.size()); j++) {
+                    std::string lname = base + ".leftCheeks[" + std::to_string(j) + "]";
+                    glUniform2f(glGetUniformLocation(mProgram, lname.c_str()), leftPoints[j].first, leftPoints[j].second);
+                }
+                for (int j = 0; j < static_cast<int>(rightPoints.size()); j++) {
+                    std::string rname = base + ".rightCheeks[" + std::to_string(j) + "]";
+                    glUniform2f(glGetUniformLocation(mProgram, rname.c_str()), rightPoints[j].first, rightPoints[j].second);
+                }
                 glUniform2f(glGetUniformLocation(mProgram, (base + ".center").c_str()), pCenter.first, pCenter.second);
                 glUniform1f(glGetUniformLocation(mProgram, (base + ".radius").c_str()), radius);
+                glUniform1f(glGetUniformLocation(mProgram, (base + ".falloff").c_str()), falloff);
                 count++;
             }
         }
