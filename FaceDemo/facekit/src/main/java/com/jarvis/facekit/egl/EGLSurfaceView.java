@@ -113,9 +113,16 @@ public class EGLSurfaceView extends GLSurfaceView {
     private native void nativeDestroyShowView(long showViewPtr);
     private native void nativeOnShowViewDraw(long showViewPtr);
     private native void nativeSetScaleType(long showViewPtr, int scaleType);
+    private native void setFaceLiftIntensity(long showViewPtr, float intensity);
 
     public native void demoShowImage(String filePath);
+    
 
+    public void setFaceLift(int intensity) {
+        if (mShowViewPtr != 0) {
+            setFaceLiftIntensity(mShowViewPtr, intensity / 100.0f);
+        }
+    }
     public enum ScaleType {
         FitXY(0),
         CenterCrop(1),

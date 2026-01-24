@@ -8,6 +8,13 @@
 namespace face {
     RetinaFace::RetinaFace(const std::string& modelPath) {
         mModelPath = modelPath;
+
+        std::string pfldPath = "pfld.mnn";
+        auto pos = modelPath.find_last_of("/\\");
+        if (pos != std::string::npos) {
+            pfldPath = modelPath.substr(0, pos + 1) + "pfld.mnn";
+        }
+        mLandmarker = std::make_shared<PFLDLandmarker>(pfldPath);
     }
 
     RetinaFace::~RetinaFace() {
@@ -118,6 +125,11 @@ namespace face {
         for(auto& bbox: final_bboxes) {
             LOGE("RetinaFaceBBox score:%f [%f,%f],[%f,%f], points{[%f,%f], [%f,%f], [%f,%f], [%f,%f], [%f,%f]}", bbox.score, bbox.x1, bbox.y1, bbox.x2, bbox.y2, bbox.landmarks[0].x, bbox.landmarks[0].y, bbox.landmarks[1].x, bbox.landmarks[1].y, bbox.landmarks[2].x, bbox.landmarks[2].y, bbox.landmarks[3].x, bbox.landmarks[3].y, bbox.landmarks[4].x, bbox.landmarks[4].y);
         }
+
+        if (mLandmarker) {
+            mLandmarker->onProcess(input);
+        }
+
         return input;
     }
 

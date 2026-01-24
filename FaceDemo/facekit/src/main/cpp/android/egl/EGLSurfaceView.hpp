@@ -22,6 +22,8 @@ namespace face {
         void onDestroy() override; // onRequestConsume和onDestroy都来自生产者线程
 
         Error onConsumeData(const std::shared_ptr<PixelData>& data) override; //onConsumeData来自消费者线程
+
+        void setFaceListIntensity(float intensity);
     private:
         jobject mSurfaceView{nullptr};
         jclass mSurfaceViewClass{nullptr};
@@ -29,6 +31,7 @@ namespace face {
         std::shared_ptr<EGLEnvironment> mEnvironment{nullptr};
         std::shared_ptr<PixelRender> mRender{nullptr};
         std::shared_ptr<PixelData> mCurrentData;
+        float mFaceLiftIntensity{0};
     };
 
 } // face

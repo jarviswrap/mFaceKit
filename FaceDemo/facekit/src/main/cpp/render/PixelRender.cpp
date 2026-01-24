@@ -238,31 +238,154 @@ namespace face {
             LOGE("PixelRender::%s surfaceSizeError:%dx%d", __FUNCTION__, mWidth, mHeight);
             return Error::Err_InvalidSurface;
         }
+        
+        // 1. Convert YUV/RGB to RGB Texture (mTextures[0] or intermediate)
+        // We will render to FBO to get a clean RGB texture for FaceLift
+        
         initGL(data->getFormat());
-        updateVertex(data->getResolution().getWidth(), data->getResolution().getHeight());
+        int imageWidth = data->getResolution().getWidth();
+        int imageHeight = data->getResolution().getHeight();
+        
+        initFBO(imageWidth, imageHeight);
+        
+        // Render current frame to FBO
+        glBindFramebuffer(GL_FRAMEBUFFER, mFBO);
+        glViewport(0, 0, imageWidth, imageHeight);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        
+        // Use full screen quad for FBO rendering (scale 1.0)
+        // We need a separate VBO/VAO for full screen or just modify VERTICES temporarily?
+        // Better to use a standard full screen quad
+        // But reusing current updateTextures logic which depends on mProgram
+        
         if (mProgram) {
-            glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
-            glClear(GL_COLOR_BUFFER_BIT);
-
             updateTextures(data);
-
+            
+            // Draw full screen quad to FBO (no cropping yet)
+            // Use simple vertices [-1, -1] to [1, 1]
+            float fullQuad[] = {
+                -1.0f,  1.0f, 0.0f,  0.0f, 0.0f,
+                -1.0f, -1.0f, 0.0f,  0.0f, 1.0f,
+                 1.0f,  1.0f, 0.0f,  1.0f, 0.0f,
+                 1.0f, -1.0f, 0.0f,  1.0f, 1.0f
+            };
+            glBindBuffer(GL_ARRAY_BUFFER, mVBO);
+            glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(fullQuad), fullQuad);
             glBindVertexArray(mVAO);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-            glBindVertexArray(0);
-
-            if (!data->bboxes.empty()) {
-                if (!mBBoxRender) {
-                    mBBoxRender = std::make_shared<BBoxRender>();
-                }
-                mBBoxRender->init();
-                mBBoxRender->draw(data->bboxes, mWidth, mHeight, data->getResolution().getWidth(), data->getResolution().getHeight(), mLastScaleX, mLastScaleY);
-            }
-
-        } else {
-            LOGE("PixelRender::%s when Program:%d", __FUNCTION__, mProgram);
-            return Error::Err_InvalidProgram;
         }
+        
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        
+        // 2. Apply Face Lift (FBO Texture -> Screen or Back to FBO?)
+        // Render directly to Screen with scaling
+        glViewport(0, 0, mWidth, mHeight);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        
+        if (!mFaceLiftRender) {
+            mFaceLiftRender = std::make_shared<FaceLiftRender>();
+        }
+        mFaceLiftRender->init();
+        mFaceLiftRender->setViewSize(mWidth, mHeight);
+        mFaceLiftRender->setIntensity(data->faceListIntensity);
+
+        // Calculate Viewport based on ScaleType
+        // Similar to updateVertex logic but applying to Viewport instead of Vertices
+        // FaceLiftRender draws a full screen quad [-1, 1], so Viewport controls the placement
+        
+        int vw = mWidth;
+        int vh = mHeight;
+        int x = 0;
+        int y = 0;
+        
+        float viewAspect = (float)mWidth / mHeight;
+        float imageAspect = (float)imageWidth / imageHeight;
+        
+        if (mScaleType == ScaleType::FitCenter) {
+             if (imageAspect > viewAspect) {
+                 // Image is wider, fit width, black bars top/bottom
+                 // vw = mWidth;
+                 vh = (int)(mWidth / imageAspect);
+                 y = (mHeight - vh) / 2;
+             } else {
+                 // Image is taller, fit height, black bars left/right
+                 // vh = mHeight;
+                 vw = (int)(mHeight * imageAspect);
+                 x = (mWidth - vw) / 2;
+             }
+        } else if (mScaleType == ScaleType::CenterCrop) {
+             if (imageAspect > viewAspect) {
+                 // Image is wider, crop width -> fill height
+                 // vh = mHeight;
+                 vw = (int)(mHeight * imageAspect);
+                 x = (mWidth - vw) / 2; // x will be negative
+             } else {
+                 // Image is taller, crop height -> fill width
+                 // vw = mWidth;
+                 vh = (int)(mWidth / imageAspect);
+                 y = (mHeight - vh) / 2; // y will be negative
+             }
+        }
+        // FitXY: use full mWidth, mHeight (default)
+        
+        glViewport(x, y, vw, vh);
+        
+        mFaceLiftRender->draw(mFBOTexture, data->bboxes, imageWidth, imageHeight);
+        
+        if (!data->bboxes.empty()) {
+             if (!mBBoxRender) {
+                 mBBoxRender = std::make_shared<BBoxRender>();
+             }
+             mBBoxRender->init();
+             // BBoxRender draws in NDC [-1, 1] relative to the current Viewport
+             // Since we set Viewport to match the image area, NDC maps correctly to image coordinates
+             mBBoxRender->draw(data->bboxes, vw, vh, imageWidth, imageHeight, 1.0f, 1.0f);
+        }
+
         return Error::None;
+    }
+
+    void PixelRender::initFBO(int width, int height) {
+        if (mFBO != 0 && mFBOWidth == width && mFBOHeight == height) {
+            return;
+        }
+        destroyFBO();
+        
+        glGenFramebuffers(1, &mFBO);
+        glBindFramebuffer(GL_FRAMEBUFFER, mFBO);
+        
+        glGenTextures(1, &mFBOTexture);
+        glBindTexture(GL_TEXTURE_2D, mFBOTexture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mFBOTexture, 0);
+        
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+            LOGE("PixelRender::initFBO failed");
+        }
+        
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        mFBOWidth = width;
+        mFBOHeight = height;
+    }
+
+    void PixelRender::destroyFBO() {
+        if (mFBOTexture) {
+            glDeleteTextures(1, &mFBOTexture);
+            mFBOTexture = 0;
+        }
+        if (mFBO) {
+            glDeleteFramebuffers(1, &mFBO);
+            mFBO = 0;
+        }
+        mFBOWidth = 0;
+        mFBOHeight = 0;
     }
 
     void PixelRender::updateTextures(const std::shared_ptr<PixelData>& data) {

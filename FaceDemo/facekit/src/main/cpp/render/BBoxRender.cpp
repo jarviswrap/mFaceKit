@@ -32,7 +32,7 @@ namespace face {
         // "BBox的(x1,y1,x2,y2)用来描述一个在(0,0,mResolution.getWidth(), mResolution.getHeight())区域内的矩形框"
         
         gl_Position = vec4(aPosition, 0.0, 1.0);
-        gl_PointSize = 20.0;
+        gl_PointSize = 10.0;
     }
     )";
 
@@ -91,6 +91,14 @@ namespace face {
         
         std::vector<float> lineVertices;
         std::vector<float> pointVertices;
+        // Transform to NDC
+        auto toNDC = [&](float x, float y) -> std::pair<float, float> {
+            float x_norm = x / imageWidth;
+            float y_norm = y / imageHeight;
+            float ndc_x = scaleX * (2.0f * x_norm - 1.0f);
+            float ndc_y = scaleY * (1.0f - 2.0f * y_norm); // Flip Y
+            return {ndc_x, ndc_y};
+        };
 
         for (const auto& bbox : bboxes) {
             // Box
@@ -99,14 +107,7 @@ namespace face {
             float x2 = bbox.x2;
             float y2 = bbox.y2;
             
-            // Transform to NDC
-            auto toNDC = [&](float x, float y) -> std::pair<float, float> {
-                 float x_norm = x / imageWidth;
-                 float y_norm = y / imageHeight;
-                 float ndc_x = scaleX * (2.0f * x_norm - 1.0f);
-                 float ndc_y = scaleY * (1.0f - 2.0f * y_norm); // Flip Y
-                 return {ndc_x, ndc_y};
-            };
+
             
             auto p1 = toNDC(x1, y1); // Top-left
             auto p2 = toNDC(x2, y1); // Top-right
@@ -126,22 +127,39 @@ namespace face {
             }
         }
         
+        std::vector<float> pfldVertices;
+        for (const auto& bbox : bboxes) {
+            for (const auto& pt : bbox.keypoints) {
+                auto p = toNDC(pt.x, pt.y);
+                pfldVertices.insert(pfldVertices.end(), {p.first, p.second});
+            }
+        }
+
         glBindVertexArray(mVAO);
         glBindBuffer(GL_ARRAY_BUFFER, mVBO);
         
         // Draw Lines (Green)
         if (!lineVertices.empty()) {
             glLineWidth(5.0f);
-            glBufferData(GL_ARRAY_BUFFER, lineVertices.size() * sizeof(float), lineVertices.data(), GL_DYNAMIC_DRAW);
+            glBufferData(GL_ARRAY_BUFFER, (lineVertices.size() + pointVertices.size() + pfldVertices.size()) * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
+            glBufferSubData(GL_ARRAY_BUFFER, 0, lineVertices.size() * sizeof(float), lineVertices.data());
+            
             glUniform4f(mColorLocation, 0.0f, 1.0f, 0.0f, 1.0f); // Green
             glDrawArrays(GL_LINES, 0, lineVertices.size() / 2);
         }
         
-        // Draw Points (Red)
+        // Draw Points (Red) - RetinaFace 5 landmarks
         if (!pointVertices.empty()) {
-            glBufferData(GL_ARRAY_BUFFER, pointVertices.size() * sizeof(float), pointVertices.data(), GL_DYNAMIC_DRAW);
+            glBufferSubData(GL_ARRAY_BUFFER, lineVertices.size() * sizeof(float), pointVertices.size() * sizeof(float), pointVertices.data());
             glUniform4f(mColorLocation, 1.0f, 0.0f, 0.0f, 1.0f); // Red
-            glDrawArrays(GL_POINTS, 0, pointVertices.size() / 2);
+            glDrawArrays(GL_POINTS, lineVertices.size() / 2, pointVertices.size() / 2);
+        }
+        
+        // Draw PFLD Points (Yellow)
+        if (!pfldVertices.empty()) {
+            glBufferSubData(GL_ARRAY_BUFFER, (lineVertices.size() + pointVertices.size()) * sizeof(float), pfldVertices.size() * sizeof(float), pfldVertices.data());
+            glUniform4f(mColorLocation, 1.0f, 1.0f, 0.0f, 1.0f); // Yellow
+            glDrawArrays(GL_POINTS, (lineVertices.size() + pointVertices.size()) / 2, pfldVertices.size() / 2);
         }
         
         glBindVertexArray(0);

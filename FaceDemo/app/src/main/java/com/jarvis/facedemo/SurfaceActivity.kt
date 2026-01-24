@@ -9,8 +9,11 @@ import com.jarvis.facekit.egl.EGLSurfaceView
 import com.jarvis.facekit.utils.FileUtils
 import java.io.File
 
+import android.widget.SeekBar
+
 class SurfaceActivity : ComponentActivity() {
     private lateinit var glSurfaceView: EGLSurfaceView
+    private lateinit var seekBar: SeekBar
 
     private lateinit var imagePath: String
     private lateinit var image1Path: String
@@ -27,9 +30,24 @@ class SurfaceActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // 创建全屏的GLSurfaceView
-        glSurfaceView = EGLSurfaceView(this)
-        setContentView(glSurfaceView)
+        setContentView(R.layout.activity_surface)
+        glSurfaceView = findViewById(R.id.gl_surface_view)
+        seekBar = findViewById(R.id.seek_bar)
+
+        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                glSurfaceView.setFaceLift(progress)
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        // Initialize with current progress
+        glSurfaceView.post {
+            glSurfaceView.setFaceLift(seekBar.progress)
+        }
+
         switchImagesAuto()
         showRetinaFace()
 
@@ -53,6 +71,14 @@ class SurfaceActivity : ComponentActivity() {
         val modelPath = filesDir.absolutePath + File.separator + "retinaface.mnn"
         if (!File(modelPath).exists()) {
             FileUtils.copyAssetResource2File(this, "retinaface.mnn", modelPath)
+        }
+        val pfldPath = filesDir.absolutePath + File.separator + "pfld.mnn"
+        if (!File(pfldPath).exists()) {
+            FileUtils.copyAssetResource2File(this, "pfld.mnn", pfldPath)
+        }
+        val zqlPath = filesDir.absolutePath + File.separator + "zqlandmark.mnn"
+        if (!File(zqlPath).exists()) {
+            FileUtils.copyAssetResource2File(this, "zqlandmark.mnn", zqlPath)
         }
         FaceKit.Instance.setModelDir(modelPath)
         FaceKit.Instance.showImage(imagePath)

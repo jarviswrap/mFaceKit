@@ -9,6 +9,8 @@
 #include "MNN/Interpreter.hpp"
 #include "MNN/ImageProcess.hpp"
 #include "common/FaceBox.hpp"
+#include "PFLDLandmarker.hpp"
+
 namespace face {
 
 
@@ -25,6 +27,7 @@ namespace face {
         MNN::Session* mSession{ nullptr };
         std::shared_ptr<MNN::Tensor> mInputTensor;
         std::shared_ptr<MNN::CV::ImageProcess> mMNNProcessor;
+        std::shared_ptr<PFLDLandmarker> mLandmarker;
 
         float _nms_threshold = 0.4;
         float _score_threshold = 0.6;

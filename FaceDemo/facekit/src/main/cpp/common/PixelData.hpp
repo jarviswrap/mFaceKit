@@ -102,6 +102,7 @@ namespace face
         const Size<uint16_t>& getResolution() const { return mResolution; };
 
         std::vector<BBox> bboxes;
+        float faceListIntensity{0};
     private:
         PixelFormat mFormat{PixelFormat::I420P};
         uint8_t *mPixels{nullptr};
@@ -110,6 +111,7 @@ namespace face
         bool mNeedFreePixel{false};
         Size<uint16_t> mResolution;
         std::string mLabel{""};
+
     };
 
 } // face

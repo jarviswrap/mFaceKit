@@ -8,6 +8,7 @@
 #include "common/PixelData.hpp"
 #include <GLES3/gl3.h>
 #include "BBoxRender.hpp"
+#include "FaceLiftRender.hpp"
 
 namespace face {
 
@@ -77,6 +78,16 @@ namespace face {
         } mUniformsRGB;
 
         std::shared_ptr<BBoxRender> mBBoxRender{nullptr};
+        std::shared_ptr<FaceLiftRender> mFaceLiftRender{nullptr};
+        
+        // FBO for Off-screen rendering (Face Lift)
+        GLuint mFBO{0};
+        GLuint mFBOTexture{0};
+        int mFBOWidth{0};
+        int mFBOHeight{0};
+        
+        void initFBO(int width, int height);
+        void destroyFBO();
     };
 
 } // face

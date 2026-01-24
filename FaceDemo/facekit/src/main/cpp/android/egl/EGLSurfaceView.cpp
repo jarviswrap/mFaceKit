@@ -86,6 +86,9 @@ namespace face {
         if (data) { // 空数据时重复渲染上帧（避免两个问题：1. 多余requestRender时引入黑帧闪烁问题，2. GLSurfaceView首个onDrawFrame无法正常渲染）
             mCurrentData = data;
         }
+        if (mCurrentData) {
+            mCurrentData->faceListIntensity = mFaceLiftIntensity;
+        }
         auto res = mRender->onDrawFrame(mCurrentData);
         return res;
     }
@@ -93,5 +96,9 @@ namespace face {
     void EGLSurfaceView::onDestroy() {
         LOGE("EGLSurfaceView::%s", __FUNCTION__);
         JNIEnvManager::getInstance().detachCurrentThread();
+    }
+
+    void EGLSurfaceView::setFaceListIntensity(float intensity) {
+        mFaceLiftIntensity = intensity;
     }
 } // face

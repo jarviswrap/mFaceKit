@@ -34,6 +34,7 @@ namespace face{
         float y2;
         float score;
         Point landmarks[5];
+        std::vector<Point> keypoints;
     };
 }
 #endif //FACEDEMO_FACEBOX_HPP

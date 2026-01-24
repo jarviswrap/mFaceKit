@@ -7,6 +7,8 @@
 #include "android/example/ImagePreviewer.hpp"
 #include "android/AndroidUtils.hpp"
 #include "core/RetinaFace.hpp"
+#include "android/egl/EGLDelegate.hpp"
+#include "android/egl/EGLSurfaceView.hpp"
 
 static std::shared_ptr<face::ImagePreviewer> sImagePreviewer = nullptr;
 
@@ -48,4 +50,15 @@ Java_com_jarvis_facekit_FaceKit_showImage(JNIEnv *env, jobject thiz, jstring ima
         return;
     }
     sImagePreviewer->requestLoadImage(face::AndroidUtils::readStringUTF(env, image_path));
+}
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_jarvis_facekit_egl_EGLSurfaceView_setFaceLiftIntensity(JNIEnv *env,
+                                                                jobject thiz,
+                                                                jlong show_view_ptr,
+                                                                jfloat intensity) {
+    auto showView = face::EGLDelegate::getInstance().getShowView(show_view_ptr);
+    if (showView) {
+        showView->setFaceListIntensity(intensity);
+    }
 }
