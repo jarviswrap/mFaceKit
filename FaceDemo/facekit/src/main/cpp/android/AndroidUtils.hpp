@@ -8,7 +8,7 @@
 
 #include <jni.h>
 #include <vector>
-
+#include <string>
 namespace face {
 
     class AndroidUtils {

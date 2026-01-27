@@ -6,25 +6,41 @@
 #define FACEDEMO_EGLSURFACEVIEW_HPP
 #include "io/Consumer.hpp"
 #include "common/PixelData.hpp"
+#include "common/Size.hpp"
 #include <jni.h>
 
 namespace face {
     class EGLEnvironment;
     class PixelRender;
-    class EGLSurfaceView: public Consumer<PixelData> {
+    class EGLSurfaceView: public std::enable_shared_from_this<EGLSurfaceView>{
     public:
         EGLSurfaceView(JNIEnv *env, jobject glsurfaceview, std::shared_ptr<EGLEnvironment> environment);
-        ~EGLSurfaceView() override;
+        ~EGLSurfaceView();
 
-        void setScaleType(int scaleType);
+        void setSurfaceListener(DataListener<uint32_t, uint32_t> listener) { mSurfaceListener = listener; }
+        void setDrawListener(DataListener<> listener) { mDrawListener = listener; }
+        void setSurfaceDestroyListener(DataListener<> listener) { mSurfaceDestroyListener = listener; }
 
-        Error onRequestConsume(uint32_t requestId) override;
-        void onDestroy() override; // onRequestConsume和onDestroy都来自生产者线程
+        Error requestDraw(); // requestDraw和destroy来自消费者线程
+        Error destroy();
 
-        Error onConsumeData(const std::shared_ptr<PixelData>& data) override; //onConsumeData来自消费者线程
+        void onDraw();
+//        Error onConsumeData(const std::shared_ptr<PixelData>& data); //onConsumeData来自消费者线程
 
-        void setFaceListIntensity(float intensity);
+//        void setFaceListIntensity(float intensity);
+        void getSurfaceSize(uint32_t& width, uint32_t& height);
+
+    protected:
+        void onSurfaceChanged(uint32_t width, uint32_t height);
+        void onSurfaceDestroy();
+
     private:
+        DataListener<uint32_t, uint32_t> mSurfaceListener{nullptr};
+        DataListener<> mDrawListener{nullptr};
+        DataListener<> mSurfaceDestroyListener{nullptr};
+        Size<uint32_t> mSurfaceSize{0, 0};
+        std::atomic<uint32_t> mRequestIndex{0};
+        std::atomic<uint32_t> mDrawIndex{0};
         jobject mSurfaceView{nullptr};
         jclass mSurfaceViewClass{nullptr};
         jmethodID mRequestRenderMethodID{nullptr};

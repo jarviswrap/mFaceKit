@@ -5,7 +5,7 @@
 #ifndef FACEDEMO_PIXELDATA_HPP
 #define FACEDEMO_PIXELDATA_HPP
 #include <vector>
-#include <cstring>
+#include <string>
 #include "common/Size.hpp"
 #include "common/FaceBox.hpp"
 namespace face
@@ -38,6 +38,14 @@ namespace face
             return !(*this == other);
         }
         
+        void setTimestamp(uint64_t timestamp) {
+            mTimestamp = timestamp;
+        }
+
+        uint64_t getTimestamp() const {
+            return mTimestamp;
+        }
+
         void setLabel(const std::string& label) {
             mLabel = label;
         }
@@ -62,6 +70,18 @@ namespace face
 
         const uint8_t* getPixels() const {
             return mPixels;
+        }
+
+        uint8_t* getWritablePixels() {
+            return mPixels;
+        }
+
+        void setResolution(uint32_t width, uint32_t height) {
+            mResolution.setSize(width, height);
+        }
+
+        void setPixelSize(uint32_t size) {
+            mPixelSize = size;
         }
 
         uint32_t getPixelSize() const {
@@ -107,9 +127,10 @@ namespace face
         PixelFormat mFormat{PixelFormat::I420P};
         uint8_t *mPixels{nullptr};
         uint32_t mPixelSize{0};
+        uint64_t mTimestamp{0};
         uint32_t mCapacity{0};
         bool mNeedFreePixel{false};
-        Size<uint16_t> mResolution;
+        Size<uint16_t> mResolution{0, 0};
         std::string mLabel{""};
 
     };

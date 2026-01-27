@@ -5,6 +5,7 @@
 #include "FaceLiftRender.hpp"
 #include "common/Log.hpp"
 #include <string>
+#include <malloc.h>
 
 namespace face {
 
@@ -220,7 +221,7 @@ namespace face {
                 float faceWidth = (bbox.x2 - bbox.x1) / imageWidth;
                 float radius = faceWidth * 0.35f;
 
-                std::string base = "uFaces[" + std::to_string(count) + "]";
+                std::string base = "uFaces";
                 glUniform1i(glGetUniformLocation(mProgram, (base + ".valid").c_str()), 1);
                 glUniform2f(glGetUniformLocation(mProgram, (base + ".leftCheek").c_str()), pLeft.first, pLeft.second);
                 glUniform2f(glGetUniformLocation(mProgram, (base + ".rightCheek").c_str()), pRight.first, pRight.second);
@@ -234,7 +235,7 @@ namespace face {
         
         // Mark remaining faces as invalid
         for (int i = count; i < MAX_FACES; i++) {
-            std::string base = "uFaces[" + std::to_string(i) + "]";
+            std::string base = "uFaces";
             glUniform1i(glGetUniformLocation(mProgram, (base + ".valid").c_str()), 0);
         }
 

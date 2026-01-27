@@ -6,6 +6,7 @@
 #define FACEDEMO_CONSUMER_HPP
 #include "common/Common.hpp"
 #include <atomic>
+#include <memory>
 
 namespace face{
     template<typename T>

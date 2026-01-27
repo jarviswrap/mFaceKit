@@ -21,10 +21,9 @@ namespace face {
         EGLDelegate(const EGLDelegate&) = delete;
         EGLDelegate& operator=(const EGLDelegate&) = delete;
 
-        int64_t createEGLEnvironment();
+        std::shared_ptr<EGLEnvironment> createEGLEnvironment();
         std::shared_ptr<EGLEnvironment> getEGLEnvironment(int64_t environment_ptr);
         void removeEGLEnvironment(int64_t environment_ptr);
-
         int64_t getSharedContext();
 
         int64_t createEGLSurfaceView(JNIEnv* env, jobject eglSurfaceView, int64_t eglEnvironmentPtr);

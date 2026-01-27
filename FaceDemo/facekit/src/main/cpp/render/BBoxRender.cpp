@@ -2,9 +2,9 @@
 // Created by wilbert on 2026/1/23.
 //
 
+#include <malloc.h>
 #include "BBoxRender.hpp"
 #include "common/Log.hpp"
-
 namespace face {
 
     static const char* VERTEX_SHADER_BBOX = R"(#version 300 es

@@ -5,9 +5,8 @@
 #ifndef FACEDEMO_SOURCE_HPP
 #define FACEDEMO_SOURCE_HPP
 
-#include <utility>
-
-#include "../common/Common.hpp"
+#include "common/Common.hpp"
+#include <memory>
 
 namespace face {
     template<typename T>

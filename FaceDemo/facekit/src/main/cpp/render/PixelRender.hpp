@@ -13,22 +13,15 @@
 
 namespace face {
 
-    enum class ScaleType {
-        FitXY,
-        CenterCrop,
-        FitCenter
-    };
-
     class PixelRender : public Render<PixelData>{
 
     public:
-        PixelRender() = default;
-        ~PixelRender() override = default;
+        PixelRender();
+        ~PixelRender() override;
 
-        void onSurfaceChanged(int width, int height) override;
-        Error onDrawFrame(const std::shared_ptr<face::PixelData> &data) override;
-        void onDestroy() override;
-        void setScaleType(ScaleType type);
+        void resize(int width, int height) override;
+        Error render(const std::shared_ptr<RenderData<PixelData>> &data) override;
+        void destroy() override;
 
     private:
         void initGL(PixelFormat format);
@@ -41,7 +34,6 @@ namespace face {
         bool mInitialized{false};
         int mWidth{0};
         int mHeight{0};
-        ScaleType mScaleType{ScaleType::FitCenter};
 
         // OpenGL resources
         GLuint mProgram{0};
@@ -70,17 +62,17 @@ namespace face {
             GLint textureRGB{-1};
         } mUniformsRGB;
 
-        std::shared_ptr<BBoxRender> mBBoxRender{nullptr};
-        std::shared_ptr<FaceMeshRender> mFaceRender{nullptr};
-        std::shared_ptr<DelaunayDebugRender> mDelaunayRender{nullptr};
+//        std::shared_ptr<BBoxRender> mBBoxRender{nullptr};
+//        std::shared_ptr<FaceMeshRender> mFaceRender{nullptr};
+//        std::shared_ptr<DelaunayDebugRender> mDelaunayRender{nullptr};
         // FBO for Off-screen rendering (Face Lift)
-        GLuint mFBO{0};
-        GLuint mFBOTexture{0};
-        int mFBOWidth{0};
-        int mFBOHeight{0};
+//        GLuint mFBO{0};
+//        GLuint mFBOTexture{0};
+//        int mFBOWidth{0};
+//        int mFBOHeight{0};
         
-        void initFBO(int width, int height);
-        void destroyFBO();
+//        void initFBO(int width, int height);
+//        void destroyFBO();
     };
 
 } // face

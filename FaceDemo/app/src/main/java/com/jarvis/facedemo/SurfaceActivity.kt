@@ -80,9 +80,14 @@ class SurfaceActivity : ComponentActivity() {
         if (!File(zqlPath).exists()) {
             FileUtils.copyAssetResource2File(this, "zqlandmark.mnn", zqlPath)
         }
-        FaceKit.Instance.setModelDir(modelPath)
-        FaceKit.Instance.showImage(imagePath)
-        glSurfaceView.postDelayed(runnable, 2000)
+        val videoPath = filesDir.absolutePath + File.separator + "time.mov"
+        if (!File(videoPath).exists()) {
+            FileUtils.copyAssetResource2File(this, "time.mov", videoPath)
+        }
+        FaceKit.Instance.showVideo(-1, videoPath)
+//        FaceKit.Instance.setModelDir(modelPath)
+//        FaceKit.Instance.showImage(imagePath)
+//        glSurfaceView.postDelayed(runnable, 2000)
     }
 
     fun switchImagesAuto() {

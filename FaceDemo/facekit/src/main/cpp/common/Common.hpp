@@ -7,6 +7,10 @@
 
 #include <functional>
 
+#ifndef SAFE_DELETE
+#define SAFE_DELETE(p) if(p){delete p; p = NULL;}
+#endif
+
 namespace face {
     template<typename... T> using DataListener = std::function<void(const T &...)>;
     template<typename... T> using BoolListener = std::function<bool(const T &...)>;
@@ -28,6 +32,7 @@ namespace face {
         Err_InvalidShowView    = -10,
         Err_StartTwice         = -11,
         Err_InvalidProgram     = -12,
+        Err_OpenGLError        = -13,
     };
 }
 #endif //FACEDEMO_COMMON_HPP

@@ -3,12 +3,16 @@
 //#include "engine/FaceInference.hpp"
 #include "android/AndroidUtils.hpp"
 #include "common/Log.hpp"
+#include "common/Rect.hpp"
 #include "JNIEnvManager.hpp"
 #include "android/example/ImagePreviewer.hpp"
 #include "android/AndroidUtils.hpp"
-#include "core/RetinaFace.hpp"
+#include "core/processor/RetinaFace.hpp"
 #include "android/egl/EGLDelegate.hpp"
 #include "android/egl/EGLSurfaceView.hpp"
+#include "core/Composer.hpp"
+#include "core/track/VideoTrack.hpp"
+#include "core/clip/VideoClip.hpp"
 
 static std::shared_ptr<face::ImagePreviewer> sImagePreviewer = nullptr;
 
@@ -59,6 +63,25 @@ Java_com_jarvis_facekit_egl_EGLSurfaceView_setFaceLiftIntensity(JNIEnv *env,
                                                                 jfloat intensity) {
     auto showView = face::EGLDelegate::getInstance().getShowView(show_view_ptr);
     if (showView) {
-        showView->setFaceListIntensity(intensity);
+//        showView->setFaceListIntensity(intensity);
     }
+}
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_jarvis_facekit_FaceKit_showVideo(JNIEnv *env, jobject thiz, jint trackIndex, jstring video_path) {
+    // TODO: implement showVideo()
+    static std::shared_ptr<face::Composer> sComposer = nullptr;
+    if (!sComposer) {
+        sComposer = std::make_shared<face::Composer>();
+        sComposer->init();
+    }
+    auto track = sComposer->getTrackByIndex(trackIndex);
+    if (!track || track->getType() != face::TrackType::Video) {
+        track = std::make_shared<face::VideoTrack>();
+        auto trackSize = sComposer->getTrackSize();
+        trackIndex = sComposer->addTrack(face::Rect<float>(0.1f *(trackSize + 1), 0.1f * (trackSize + 1), 0.5f, 0.5f), track) - 1;
+    }
+    auto videoTrack = std::static_pointer_cast<face::VideoTrack>(track);
+    videoTrack->addClip(std::make_shared<face::VideoClip>(face::AndroidUtils::readStringUTF(env, video_path)));
+    return trackIndex + 1;
 }

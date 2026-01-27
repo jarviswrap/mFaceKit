@@ -5,11 +5,16 @@
 # Sets the minimum CMake version required for this project.
 cmake_minimum_required(VERSION 3.22.1)
 
+set(CMAKE_CXX_STANDARD 11)
 # Declares the project name. The project name can be accessed via ${ PROJECT_NAME},
 # Since this is the top level CMakeLists.txt, the project name is also accessible
 # with ${CMAKE_PROJECT_NAME} (both CMake variables are in-sync within the top level
 # build script scope).
 project("facekit")
+
+add_library(kitcommon SHARED IMPORTED)
+set_target_properties(kitcommon PROPERTIES
+        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/libkitcommon.so)
 
 # Collect source files using glob
 file(GLOB_RECURSE ANDROID_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/android/*.cpp")
@@ -17,6 +22,8 @@ file(GLOB_RECURSE COMMON_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/common/*.cpp")
 file(GLOB_RECURSE RENDER_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/render/*.cpp")
 file(GLOB_RECURSE CORE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/core/*.cpp")
 file(GLOB_RECURSE IO_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/io/*.cpp")
+
+
 
 # Import prebuilt libraries from jniLibs
 add_library(MNN SHARED IMPORTED)
@@ -30,6 +37,30 @@ set_target_properties(MNNOpenCV PROPERTIES
 add_library(MNN_Express SHARED IMPORTED)
 set_target_properties(MNN_Express PROPERTIES
         IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/libMNN_Express.so)
+
+add_library(FFMPEG_AVCODEC STATIC IMPORTED)
+set_target_properties(FFMPEG_AVCODEC PROPERTIES
+        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/libavcodec.a)
+
+add_library(FFMPEG_AVFORMAT STATIC IMPORTED)
+set_target_properties(FFMPEG_AVFORMAT PROPERTIES
+        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/libavformat.a)
+
+add_library(FFMPEG_AVFILTER STATIC IMPORTED)
+set_target_properties(FFMPEG_AVFILTER PROPERTIES
+        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/libavfilter.a)
+
+add_library(FFMPEG_AVUTIL STATIC IMPORTED)
+set_target_properties(FFMPEG_AVUTIL PROPERTIES
+        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/libavutil.a)
+
+add_library(FFMPEG_SWRESAMPLE STATIC IMPORTED)
+set_target_properties(FFMPEG_SWRESAMPLE PROPERTIES
+        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/libswresample.a)
+
+add_library(FFMPEG_SWSCALE STATIC IMPORTED)
+set_target_properties(FFMPEG_SWSCALE PROPERTIES
+        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/libswscale.a)
 
 add_library(${CMAKE_PROJECT_NAME} SHARED
         ${COMMON_SOURCES}
@@ -45,6 +76,7 @@ target_include_directories(${CMAKE_PROJECT_NAME}
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}/../include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../include/ffmpeg
 )
 # Specifies libraries CMake should link to your target library. You
 # can link libraries from various origins, such as libraries defined in this
@@ -56,5 +88,12 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
         MNN
         MNNOpenCV
         MNN_Express
+        FFMPEG_AVFORMAT
+        FFMPEG_AVCODEC
+        FFMPEG_AVFILTER
+        FFMPEG_SWSCALE
+        FFMPEG_SWRESAMPLE
+        FFMPEG_AVUTIL
         EGL
-        GLESv3)
+        GLESv3
+        z)

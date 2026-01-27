@@ -4,7 +4,7 @@
 
 #ifndef FACEDEMO_PIPELINE_HPP
 #define FACEDEMO_PIPELINE_HPP
-#include "Processor.hpp"
+#include "core/processor/Processor.hpp"
 #include "io/Source.hpp"
 #include "io/Destination.hpp"
 #include "common/LimitQueue.hpp"

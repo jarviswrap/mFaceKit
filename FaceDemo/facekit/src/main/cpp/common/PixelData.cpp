@@ -120,6 +120,7 @@ namespace face {
     }
     
     void PixelData::allocate(size_t size) {
+        if (mNeedFreePixel && mCapacity == size) return;
         if (size > 0) {
             clear();
             mPixels = static_cast<uint8_t*>(malloc(size));

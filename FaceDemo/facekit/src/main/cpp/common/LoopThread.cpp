@@ -109,7 +109,7 @@ namespace face
         return mLoopIntervalMs.load();
     }
     
-    void LoopThread::requestLoop(uint32_t requestId) {
+    void LoopThread::requestLoop(uint64_t requestId) {
         if (mLoopMode.load() == LoopMode::REQUEST) {
             if (!mRunning.load()) {
                 LOGE("LoopThread::%s when thread not running, requestId:%d", __FUNCTION__, requestId);
@@ -144,7 +144,7 @@ namespace face
         // 主循环
         while (!mStopRequested.load()) {
             LoopMode currentMode = mLoopMode.load();
-            uint32_t requestId = 0;
+            uint64_t requestId = 0;
             
             if (currentMode == LoopMode::REQUEST) {
                 // REQUEST模式：等待请求触发

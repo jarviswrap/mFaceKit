@@ -98,7 +98,7 @@ public class EGLSurfaceView extends GLSurfaceView {
 
             @Override
             public void onSurfaceChanged(GL10 gl, int width, int height) {
-                Log.e(TAG, "onSurfaceChanged:" + width + "x" + height);
+                Log.e(TAG, "resize:" + width + "x" + height);
             }
 
             @Override

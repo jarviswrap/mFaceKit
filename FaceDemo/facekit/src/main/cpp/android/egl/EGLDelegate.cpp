@@ -15,12 +15,12 @@ namespace face {
         return instance;
     }
 
-    int64_t EGLDelegate::createEGLEnvironment() {
+    std::shared_ptr<EGLEnvironment> EGLDelegate::createEGLEnvironment() {
         std::lock_guard<std::mutex> lock(mMutex);
         auto environment = std::make_shared<EGLEnvironment>();
         auto ptr = (int64_t) environment.get();
         mEnvironments.emplace(ptr, environment);
-        return ptr;
+        return environment;
     }
 
     std::shared_ptr<EGLEnvironment> EGLDelegate::getEGLEnvironment(int64_t environment_ptr) {

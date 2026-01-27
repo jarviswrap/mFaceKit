@@ -8,7 +8,7 @@
 #include <GLES3/gl3.h>
 #include <vector>
 #include "common/FaceBox.hpp"
-#include "utils/Delaunay.hpp"
+#include "render/utils/Delaunay.hpp"
 
 namespace face {
 

@@ -285,16 +285,16 @@ namespace face {
                 float radius = faceWidth * 0.35f;
                 float falloff = 1.6f;
 
-                std::string base = "uFaces[" + std::to_string(count) + "]";
+                std::string base = "uFaces";
                 glUniform1i(glGetUniformLocation(mProgram, (base + ".valid").c_str()), 1);
                 glUniform1i(glGetUniformLocation(mProgram, (base + ".leftCount").c_str()), static_cast<int>(leftPoints.size()));
                 glUniform1i(glGetUniformLocation(mProgram, (base + ".rightCount").c_str()), static_cast<int>(rightPoints.size()));
                 for (int j = 0; j < static_cast<int>(leftPoints.size()); j++) {
-                    std::string lname = base + ".leftCheeks[" + std::to_string(j) + "]";
+                    std::string lname = base + ".leftCheeks";
                     glUniform2f(glGetUniformLocation(mProgram, lname.c_str()), leftPoints[j].first, leftPoints[j].second);
                 }
                 for (int j = 0; j < static_cast<int>(rightPoints.size()); j++) {
-                    std::string rname = base + ".rightCheeks[" + std::to_string(j) + "]";
+                    std::string rname = base + ".rightCheeks";
                     glUniform2f(glGetUniformLocation(mProgram, rname.c_str()), rightPoints[j].first, rightPoints[j].second);
                 }
                 glUniform2f(glGetUniformLocation(mProgram, (base + ".center").c_str()), pCenter.first, pCenter.second);
@@ -304,7 +304,7 @@ namespace face {
             }
         }
         for (int i = count; i < MAX_FACES; i++) {
-            std::string base = "uFaces[" + std::to_string(i) + "]";
+            std::string base = "uFaces";
             glUniform1i(glGetUniformLocation(mProgram, (base + ".valid").c_str()), 0);
         }
 

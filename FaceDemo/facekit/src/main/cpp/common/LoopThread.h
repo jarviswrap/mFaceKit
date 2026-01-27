@@ -20,7 +20,8 @@ namespace face
      */
     enum class LoopMode {
         REQUEST,    // 请求触发模式：需要主动调用requestLoop()触发循环
-        INTERVAL    // 间隔触发模式：按固定间隔自动触发循环
+        INTERVAL,   // 间隔触发模式：按固定间隔自动触发循环
+
     };
     
     /**
@@ -35,7 +36,7 @@ namespace face
         // OnStart: 线程启动事件，无参数
         using OnStart = DataListener<>;
         // OnLoop: 循环事件，参数为requestId
-        using OnLoop = DataListener<uint32_t>;
+        using OnLoop = DataListener<uint64_t>;
         // OnStop: 线程结束事件，无参数
         using OnStop = DataListener<>;
         
@@ -143,7 +144,7 @@ namespace face
          * 唤醒线程执行一次循环回调
          * @param requestId 请求ID，会在循环回调中传递
          */
-        void requestLoop(uint32_t requestId = 1);
+        void requestLoop(uint64_t requestId = 1);
         
     protected:
         /**
@@ -175,7 +176,7 @@ namespace face
         
         // 请求ID（用于REQUEST模式）
         // -1表示无请求，>=0表示有效请求
-        std::atomic<uint32_t> mCurrentRequestId{0};
+        std::atomic<uint64_t> mCurrentRequestId{0};
         
         // 用于保护回调函数的互斥锁
         mutable std::mutex mCallbackMutex;

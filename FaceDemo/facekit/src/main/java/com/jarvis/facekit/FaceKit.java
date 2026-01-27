@@ -17,6 +17,7 @@ public enum FaceKit {
         }
     }
     static {
+//        NativeLib.test();
         System.loadLibrary("facekit");
         System.loadLibrary("MNN");
         System.loadLibrary("MNNOpenCV");
@@ -35,5 +36,7 @@ public enum FaceKit {
     public native void setModelDir(String modelPath);
 
     public native void showImage(String imagePath);
+
+    public native int showVideo(int trackIndex, String videoPath);
 
 }
