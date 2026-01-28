@@ -5,6 +5,7 @@
 #include "PixelRender.hpp"
 #include "common/Log.hpp"
 #include <vector>
+#include <string.h>
 
 namespace face {
 

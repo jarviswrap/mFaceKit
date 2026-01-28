@@ -2,7 +2,9 @@
 // Created by wilbert on 2026/1/16.
 //
 
+#include <string.h>
 #include "AndroidUtils.hpp"
+
 #ifdef __ANDROID__
 namespace face {
     jintArray AndroidUtils::createIntArray(JNIEnv *env, std::vector<int32_t> &arr) {

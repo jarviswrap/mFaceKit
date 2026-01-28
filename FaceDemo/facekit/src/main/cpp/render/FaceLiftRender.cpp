@@ -5,6 +5,8 @@
 #include "FaceLiftRender.hpp"
 #include "common/Log.hpp"
 #include <string>
+#include <sstream>
+#include <malloc.h>
 
 namespace face {
 
@@ -220,13 +222,14 @@ namespace face {
                 float faceWidth = (bbox.x2 - bbox.x1) / imageWidth;
                 float radius = faceWidth * 0.35f;
 
-                std::string base = "uFaces[" + std::to_string(count) + "]";
-                glUniform1i(glGetUniformLocation(mProgram, (base + ".valid").c_str()), 1);
-                glUniform2f(glGetUniformLocation(mProgram, (base + ".leftCheek").c_str()), pLeft.first, pLeft.second);
-                glUniform2f(glGetUniformLocation(mProgram, (base + ".rightCheek").c_str()), pRight.first, pRight.second);
-                glUniform2f(glGetUniformLocation(mProgram, (base + ".chin").c_str()), pChin.first, pChin.second);
-                glUniform2f(glGetUniformLocation(mProgram, (base + ".center").c_str()), pCenter.first, pCenter.second);
-                glUniform1f(glGetUniformLocation(mProgram, (base + ".radius").c_str()), radius);
+                std::stringstream ss("uFaces[");
+                ss << count << "]";
+                glUniform1i(glGetUniformLocation(mProgram, (ss.str() + ".valid").c_str()), 1);
+                glUniform2f(glGetUniformLocation(mProgram, (ss.str() + ".leftCheek").c_str()), pLeft.first, pLeft.second);
+                glUniform2f(glGetUniformLocation(mProgram, (ss.str() + ".rightCheek").c_str()), pRight.first, pRight.second);
+                glUniform2f(glGetUniformLocation(mProgram, (ss.str() + ".chin").c_str()), pChin.first, pChin.second);
+                glUniform2f(glGetUniformLocation(mProgram, (ss.str() + ".center").c_str()), pCenter.first, pCenter.second);
+                glUniform1f(glGetUniformLocation(mProgram, (ss.str() + ".radius").c_str()), radius);
                 
                 count++;
             }
@@ -234,8 +237,9 @@ namespace face {
         
         // Mark remaining faces as invalid
         for (int i = count; i < MAX_FACES; i++) {
-            std::string base = "uFaces[" + std::to_string(i) + "]";
-            glUniform1i(glGetUniformLocation(mProgram, (base + ".valid").c_str()), 0);
+            std::stringstream ss("uFaces[");
+            ss << i << "]";
+            glUniform1i(glGetUniformLocation(mProgram, (ss.str() + ".valid").c_str()), 0);
         }
 
         glBindVertexArray(mVAO);

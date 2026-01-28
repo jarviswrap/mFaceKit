@@ -2,6 +2,7 @@
 // Created by wilbert on 2026/1/23.
 //
 
+#include <malloc.h>
 #include "BBoxRender.hpp"
 #include "common/Log.hpp"
 

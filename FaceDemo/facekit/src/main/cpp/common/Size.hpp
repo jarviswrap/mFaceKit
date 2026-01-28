@@ -10,8 +10,6 @@ namespace face
     class Size
     {
     public:
-        Size() = default;
-
         Size(T w, T h) : mWidth(w), mHeight(h) {};
 
         void getSize(T &w, T &h)
@@ -76,8 +74,8 @@ namespace face
         }
 
     private:
-        T                      mWidth{0};
-        T                      mHeight{0};
+        T                      mWidth;
+        T                      mHeight;
     };
 }
 #endif //FACEDEMO_SIZE_HPP

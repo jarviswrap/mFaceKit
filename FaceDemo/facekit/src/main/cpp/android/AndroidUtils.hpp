@@ -5,7 +5,7 @@
 #ifndef FACEDEMO_ANDROIDUTILS_HPP
 #define FACEDEMO_ANDROIDUTILS_HPP
 #ifdef __ANDROID__
-
+#include <string>
 #include <jni.h>
 #include <vector>
 

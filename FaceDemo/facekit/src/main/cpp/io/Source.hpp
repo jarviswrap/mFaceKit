@@ -7,7 +7,8 @@
 
 #include <utility>
 
-#include "../common/Common.hpp"
+#include "common/Common.hpp"
+#include <memory>
 
 namespace face {
     template<typename T>

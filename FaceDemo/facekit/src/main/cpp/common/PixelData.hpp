@@ -5,9 +5,10 @@
 #ifndef FACEDEMO_PIXELDATA_HPP
 #define FACEDEMO_PIXELDATA_HPP
 #include <vector>
-#include <cstring>
+#include <string>
 #include "common/Size.hpp"
 #include "common/FaceBox.hpp"
+
 namespace face
 {
     enum class PixelFormat: uint8_t {
@@ -109,7 +110,7 @@ namespace face
         uint32_t mPixelSize{0};
         uint32_t mCapacity{0};
         bool mNeedFreePixel{false};
-        Size<uint16_t> mResolution;
+        Size<uint16_t> mResolution{0, 0};
         std::string mLabel{""};
 
     };

@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    ndkVersion = "27.2.12479018"
+    ndkVersion = "16.1.4479499"
     namespace = "com.jarvis.facekit"
     compileSdk {
         version = release(36)
@@ -16,7 +16,9 @@ android {
         consumerProguardFiles("consumer-rules.pro")
         externalNativeBuild {
             cmake {
-                cppFlags("")
+                cppFlags("-std=c++11")
+                arguments("-DANDROID_STL=c++_shared")
+                abiFilters.addAll(listOf("arm64-v8a", "armeabi-v7a"))
             }
         }
     }

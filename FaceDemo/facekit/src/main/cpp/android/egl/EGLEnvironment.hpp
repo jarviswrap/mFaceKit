@@ -58,7 +58,7 @@ namespace face {
         EGLSurface mSurface{EGL_NO_SURFACE};
         EGLSurfaceType mSurfaceType{EGLSurfaceType::NoSurface};
         int64_t mSharedContextPtr{0};
-        Size<uint16_t> mSurfaceResolution;
+        Size<uint16_t> mSurfaceResolution{0, 0};
         DataListener<EGLEventId, EGLSurfaceType, Size<uint16_t>> mSurfaceListener{nullptr};
     };
 

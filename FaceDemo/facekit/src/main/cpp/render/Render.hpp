@@ -6,7 +6,7 @@
 #define FACEDEMO_RENDER_HPP
 
 #include "common/Common.hpp"
-
+#include <memory>
 namespace face {
     template<typename T>
     class Render {
