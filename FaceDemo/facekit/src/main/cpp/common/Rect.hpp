@@ -21,6 +21,7 @@ namespace face {
             height = h;
         }
 
+        bool isValid() { return width > 0 && height > 0; }
 
         T startX{0};
         T startY{0};

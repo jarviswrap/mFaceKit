@@ -58,7 +58,7 @@ namespace face {
             return Error::Err_OpenGLError;
         }
         auto& texture = data->data;
-        LOGE("TextureRender::%s, data:%p, rotation:%f, textureId:%lu", __FUNCTION__, data.get(), data->rotation, (uint32_t)texture->getTextureId());
+        LOGE("TextureRender::%s, data:%p, rotation:%f, textureId:[%lu, %dx%d]", __FUNCTION__, data.get(), data->rotation, (uint32_t)texture->getTextureId(), texture->width(), texture->height());
         glUseProgram(mProgram);
         checkGlError("glUseProgram");
 

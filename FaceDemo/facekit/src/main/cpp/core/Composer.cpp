@@ -92,7 +92,8 @@ namespace face {
                                 h = _normalizeHeight * sp->mHeight;
                             }
                             auto videoTrack = std::static_pointer_cast<VideoTrack>(track);
-                            videoTrack->resize(width, height);
+
+                            videoTrack->resize(w, h);
                         }
                     }
                 }
@@ -126,7 +127,7 @@ namespace face {
                                 renderData->data = frameBuffer->getFboTexture();
                                 LOGE("Composer::%s renderTrace startRender Texture:%d", __FUNCTION__, renderData->data->getTextureId());
                                 sp->mRender->render(renderData);
-                                OpenGLUtils::finish();
+                                OpenGLUtils::flush();
                                 LOGE("Composer::%s renderTrace finishRender Texture:%d", __FUNCTION__, renderData->data->getTextureId());
                             } else {
                                 LOGE("Composer::%s empty FrameBuffer", __FUNCTION__ );

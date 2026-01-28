@@ -63,7 +63,7 @@ namespace face {
             auto result = mRecycleQueue->pop(condition);
             if (result) {
                 LOGE("VideoTrack::%s renderTrace clipRendered to textureId:%d, timeStamp:%llu success", __FUNCTION__, result->getFboTexture()->getTextureId(), timeStamp);
-
+                OpenGLUtils::flush();
                 mDataQueue->push(result);
             } else {
                 LOGE("VideoTrack::%s renderTrace timeStamp:%llu failed", __FUNCTION__, timeStamp);
