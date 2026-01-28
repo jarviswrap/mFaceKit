@@ -11,22 +11,23 @@
 
 namespace face {
     EGLSurfaceView::EGLSurfaceView(JNIEnv *env,
-                                   jobject glsurfaceview,
-                                   std::shared_ptr<EGLEnvironment> environment) {
+                                   jobject glsurfaceview) {
         LOGE("EGLSurfaceView::%s", __FUNCTION__);
         mSurfaceView = env->NewGlobalRef(glsurfaceview);
-        mEnvironment = std::move(environment);
         jclass cls = env->GetObjectClass(glsurfaceview);
         mSurfaceViewClass      = (jclass) env->NewGlobalRef(cls);
         mRequestRenderMethodID = env->GetMethodID(mSurfaceViewClass, "requestRender", "()V");
         env->DeleteLocalRef(cls);
+    }
 
+    void EGLSurfaceView::initEnvironment(std::shared_ptr <face::EGLEnvironment> environment) {
+        mEnvironment = std::move(environment);
         mRender = std::make_shared<PixelRender>();
         auto render = mRender;
         std::weak_ptr<EGLSurfaceView> weakPtr(shared_from_this());
         mEnvironment->setEGLSurfaceListener([weakPtr](const EGLEventId &eventId,
-                                                     const EGLSurfaceType &surfaceType,
-                                                     const Size<uint16_t> &size) -> void {
+                                                      const EGLSurfaceType &surfaceType,
+                                                      const Size<uint16_t> &size) -> void {
             LOGE("onEGLSurfaceChanged, %s, type:%s, %ux%u",
                  eventId == EGLEventId::SurfaceCreated ? "created" : (eventId ==
                                                                       EGLEventId::SurfaceOnDestroy
@@ -40,7 +41,7 @@ namespace face {
                     if (eventId == EGLEventId::SurfaceCreated) {
                         ptr->onSurfaceChanged(size.getWidth(), size.getHeight());
                     } else if (eventId == EGLEventId::SurfaceOnDestroy) {
-                        ptr->onSurfaceDestroy();
+                            ptr->onSurfaceDestroy();
                     }
                 }
             }
@@ -100,27 +101,6 @@ namespace face {
         auto surfaceDestroyListener = mSurfaceDestroyListener;
         if (surfaceDestroyListener) surfaceDestroyListener();
     }
-
-//    Error EGLSurfaceView::onConsumeData(const std::shared_ptr<PixelData> &data) {
-//        if (!mCurrentData) {
-//            LOGE("EGLSurfaceView::%s firstDraw", __FUNCTION__);
-//        }
-//        if (data) { // 空数据时重复渲染上帧（避免两个问题：1. 多余requestRender时引入黑帧闪烁问题，2. GLSurfaceView首个onDrawFrame无法正常渲染）
-//            mCurrentData = data;
-//        }
-//        if (mCurrentData) {
-//            mCurrentData->faceListIntensity = mFaceLiftIntensity;
-//        }
-//        auto res = mRender->render(mCurrentData);
-//
-//        return res;
-//    }
-
-
-
-//    void EGLSurfaceView::setFaceListIntensity(float intensity) {
-//        mFaceLiftIntensity = intensity;
-//    }
 
     void EGLSurfaceView::getSurfaceSize(uint32_t &width, uint32_t &height) {
         mSurfaceSize.getSize(width, height);

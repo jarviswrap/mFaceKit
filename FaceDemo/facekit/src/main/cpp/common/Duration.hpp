@@ -18,6 +18,11 @@ namespace face {
         uint64_t start{0};
         uint64_t end{0};
 
+        void set(uint64_t s, uint64_t e) {
+            start = s;
+            end = e;
+        }
+
         uint64_t duration() const { return end - start; }
 
         bool isActive(uint64_t timeStamp) const { return timeStamp >= start && timeStamp < end; }

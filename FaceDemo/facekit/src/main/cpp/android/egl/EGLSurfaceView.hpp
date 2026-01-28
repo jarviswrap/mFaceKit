@@ -14,8 +14,10 @@ namespace face {
     class PixelRender;
     class EGLSurfaceView: public std::enable_shared_from_this<EGLSurfaceView>{
     public:
-        EGLSurfaceView(JNIEnv *env, jobject glsurfaceview, std::shared_ptr<EGLEnvironment> environment);
+        EGLSurfaceView(JNIEnv *env, jobject glsurfaceview);
         ~EGLSurfaceView();
+
+        void initEnvironment(std::shared_ptr<EGLEnvironment> environment);
 
         void setSurfaceListener(DataListener<uint32_t, uint32_t> listener) { mSurfaceListener = listener; }
         void setDrawListener(DataListener<> listener) { mDrawListener = listener; }
@@ -25,9 +27,7 @@ namespace face {
         Error destroy();
 
         void onDraw();
-//        Error onConsumeData(const std::shared_ptr<PixelData>& data); //onConsumeData来自消费者线程
 
-//        void setFaceListIntensity(float intensity);
         void getSurfaceSize(uint32_t& width, uint32_t& height);
 
     protected:

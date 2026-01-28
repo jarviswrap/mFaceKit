@@ -29,7 +29,7 @@ namespace face {
         int64_t createEGLSurfaceView(JNIEnv* env, jobject eglSurfaceView, int64_t eglEnvironmentPtr);
         std::shared_ptr<EGLSurfaceView> getShowView(int64_t surfaceview_ptr = 0);
         void removeEGLShowView(int64_t surfaceview_ptr);
-        void setShowViewListener(DataListener<std::shared_ptr<EGLSurfaceView>> listener) { mShowViewListener = listener; }
+        void setShowViewListener(DataListener<std::shared_ptr<EGLSurfaceView>> listener);
 
     private:
         EGLDelegate() = default;
@@ -39,11 +39,10 @@ namespace face {
 
         std::mutex mMutex;
         std::unordered_map<int64_t, std::shared_ptr<EGLEnvironment>> mEnvironments;
-
         std::unordered_map<int64_t, std::shared_ptr<EGLSurfaceView>> mSurfaceViews;
         std::shared_ptr<EGLSurfaceView> mLastShowView{nullptr};
 
-        DataListener<std::shared_ptr<EGLSurfaceView>> mShowViewListener;
+        DataListener<std::shared_ptr<EGLSurfaceView>> mShowViewListener{nullptr};
     };
 
 } // face

@@ -39,4 +39,6 @@ public enum FaceKit {
 
     public native int showVideo(int trackIndex, String videoPath);
 
+    public native void tick();
+
 }

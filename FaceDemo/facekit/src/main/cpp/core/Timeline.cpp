@@ -3,9 +3,10 @@
 //
 
 #include "Timeline.hpp"
+#include "common/Log.hpp"
 
 namespace face {
-    Timeline::Timeline() {}
+    Timeline::Timeline(bool autoTick): mAutoTick(autoTick) {}
 
     Timeline::~Timeline() {
         stop();
@@ -13,16 +14,20 @@ namespace face {
 
     void Timeline::start() {
         if (!mThread) {
-            mThread = std::make_shared<LoopThread>();
+            mThread = std::make_shared<LoopThread>("Timeline");
         }
-        mThread->setLoopMode(LoopMode::INTERVAL);
-        mThread->setLoopInterval(TICK_INTERVAL);
+        LOGE("Timeline::%s, mAutoTick:%d, this:%p", __FUNCTION__, mAutoTick, this);
+        mThread->setLoopMode(mAutoTick?LoopMode::INTERVAL: LoopMode::REQUEST);
+        if (mAutoTick) {
+            mThread->setLoopInterval(TICK_INTERVAL);
+        }
         std::weak_ptr<Timeline> weakPtr(shared_from_this());
         mThread->setOnLoopListener([weakPtr] (uint64_t requestId) {
             if (auto ptr = weakPtr.lock()) {
                 ptr->onTick();
             }
         });
+        mCurrentTimeStamp = 0;
         mThread->start();
     }
 
@@ -54,5 +59,11 @@ namespace face {
             ticker(currentTime);
         }
         mCurrentTimeStamp += TICK_INTERVAL;
+    }
+
+    void Timeline::tick() {
+        if (mThread) {
+            mThread->requestLoop();
+        }
     }
 } // face

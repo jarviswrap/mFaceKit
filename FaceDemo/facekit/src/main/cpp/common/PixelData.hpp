@@ -8,6 +8,7 @@
 #include <string>
 #include "common/Size.hpp"
 #include "common/FaceBox.hpp"
+
 namespace face
 {
     enum class PixelFormat: uint8_t {

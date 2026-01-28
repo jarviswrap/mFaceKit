@@ -1,9 +1,11 @@
 package com.jarvis.facedemo
 
 import android.os.Bundle
+import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.activity.enableEdgeToEdge
 import android.view.WindowManager
+import android.widget.Button
 import com.jarvis.facekit.FaceKit
 import com.jarvis.facekit.egl.EGLSurfaceView
 import com.jarvis.facekit.utils.FileUtils
@@ -122,5 +124,9 @@ class SurfaceActivity : ComponentActivity() {
     override fun onDestroy() {
         destroyImagePreview()
         super.onDestroy()
+    }
+
+    fun tick(button: View) {
+        FaceKit.Instance.tick()
     }
 }

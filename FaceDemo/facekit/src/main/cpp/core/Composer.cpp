@@ -8,6 +8,9 @@
 #include "android/egl/EGLSurfaceView.hpp"
 #include "render/TextureRender.hpp"
 #include "core/track/VideoTrack.hpp"
+#include "render/utils/OpenGLUtils.hpp"
+#include "render/utils/FrameBuffer.hpp"
+#include "common/Log.hpp"
 
 namespace face {
     Composer::Composer() {}
@@ -15,6 +18,8 @@ namespace face {
     Composer::~Composer() {}
 
     void Composer::init(std::shared_ptr<Timeline> timeline) {
+        LOGE("Composer::%s sTimeline:%p", __FUNCTION__ , timeline.get());
+        mTimeline = timeline;
         if (!mTimeline) {
             mTimeline = std::make_shared<Timeline>();
         }
@@ -100,24 +105,32 @@ namespace face {
                     for (auto& track: sp->mTrackList) {
                         if (track->getType() == TrackType::Video) {
                             auto videoTrack = std::static_pointer_cast<VideoTrack>(track);
-                            auto renderData = std::make_shared<RenderData<Texture>>();
-                            renderData->data = videoTrack->getCurrentTexture();
-                            uint32_t x = 0;
-                            uint32_t y = 0;
-                            uint32_t width = 0;
-                            uint32_t height = 0;
-                            videoTrack->getSize(width, height);
-                            auto it = sp->mTrackMap.find(track);
-                            if (it != sp->mTrackMap.end()) {
-                                auto rect = (*it).second;
-                                float _normalizeX = rect.startX;
-                                float _normalizeY = rect.startY;
-                                x = _normalizeX * sp->mWidth;
-                                y = _normalizeY * sp->mHeight;
+                            auto frameBuffer = videoTrack->getCurrentFrameBuffer();
+                            if (frameBuffer) {
+                                auto renderData = std::make_shared<RenderData<Texture>>();
+                                uint32_t x = 0;
+                                uint32_t y = 0;
+                                uint32_t width = 0;
+                                uint32_t height = 0;
+                                videoTrack->getSize(width, height);
+                                auto it = sp->mTrackMap.find(track);
+                                if (it != sp->mTrackMap.end()) {
+                                    auto rect = (*it).second;
+                                    float _normalizeX = rect.startX;
+                                    float _normalizeY = rect.startY;
+                                    x = _normalizeX * sp->mWidth;
+                                    y = _normalizeY * sp->mHeight;
+                                }
+                                renderData->rect.set(x, y, width, height);
+                                renderData->scaleType = ScaleType::FitCenter;
+                                renderData->data = frameBuffer->getFboTexture();
+                                LOGE("Composer::%s renderTrace startRender Texture:%d", __FUNCTION__, renderData->data->getTextureId());
+                                sp->mRender->render(renderData);
+                                OpenGLUtils::finish();
+                                LOGE("Composer::%s renderTrace finishRender Texture:%d", __FUNCTION__, renderData->data->getTextureId());
+                            } else {
+                                LOGE("Composer::%s empty FrameBuffer", __FUNCTION__ );
                             }
-                            renderData->rect.set(x, y, width, height);
-                            renderData->scaleType = ScaleType::FitCenter;
-                            sp->mRender->render(renderData);
                         }
                     }
                 }

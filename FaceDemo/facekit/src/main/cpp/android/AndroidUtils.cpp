@@ -4,6 +4,7 @@
 
 #include <string.h>
 #include "AndroidUtils.hpp"
+
 #ifdef __ANDROID__
 namespace face {
     jintArray AndroidUtils::createIntArray(JNIEnv *env, std::vector<int32_t> &arr) {

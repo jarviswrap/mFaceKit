@@ -61,7 +61,8 @@ namespace face {
         if (it != mEnvironments.end()) {
             eglEnvironment = it->second;
         }
-        auto showView = std::make_shared<EGLSurfaceView>(env, eglSurfaceView, eglEnvironment);
+        auto showView = std::make_shared<EGLSurfaceView>(env, eglSurfaceView);
+        showView->initEnvironment(eglEnvironment);
         auto ptr = (int64_t) showView.get();
         mSurfaceViews.emplace(ptr, showView);
         if (mShowViewListener) {
@@ -92,6 +93,10 @@ namespace face {
                 mLastShowView.reset();
             }
         }
+    }
+
+    void EGLDelegate::setShowViewListener(DataListener<std::shared_ptr<EGLSurfaceView>> listener) {
+        mShowViewListener = listener;
     }
 
 } // face

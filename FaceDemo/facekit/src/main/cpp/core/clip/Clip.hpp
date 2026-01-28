@@ -15,12 +15,17 @@ namespace face {
 
     class Clip {
     public:
+        Clip(ClipType type): mType(type) {}
         ClipType getClipType() { return mType; };
+        void setDuration(uint64_t start, uint64_t end) { mDuration.set(start, end); }
         Duration getDuration() const { return mDuration; }
         bool isActive(uint64_t timeStamp) const { return mDuration.isActive(timeStamp); }
         bool isValid() { return mDuration.duration() > 0; }
         virtual bool render(uint64_t timeStamp) { return false; };
-    private:
+        uint64_t getStart() { return mDuration.start; }
+        uint64_t getEnd() { return mDuration.end; }
+
+    protected:
         Duration mDuration;
         ClipType mType{ClipType::Video};
     };

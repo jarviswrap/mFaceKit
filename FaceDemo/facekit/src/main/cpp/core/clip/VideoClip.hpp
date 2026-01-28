@@ -24,6 +24,7 @@ namespace face {
     public:
         explicit VideoClip(const std::string& videoFile);
         ~VideoClip();
+        void start(uint64_t start, uint64_t end);
         bool render(uint64_t timeStamp) override;
         void onSizeChanged(uint32_t width, uint32_t height);
     private:
@@ -42,6 +43,9 @@ namespace face {
         AVPacket* mPacket{nullptr};
         SwsContext* mSwsCtx{nullptr};
         int mVideoStreamIndex{-1};
+
+        void seek(uint64_t timeStamp);
+        void flush();
 
         void onStart();
         void onLoop(uint64_t requestId);

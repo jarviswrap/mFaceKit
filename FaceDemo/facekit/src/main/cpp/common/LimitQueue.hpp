@@ -88,16 +88,26 @@ namespace face {
             return mQueue.size();
         }
 
-        std::shared_ptr<T> pop() {
+        std::shared_ptr<T> pop(BoolListener<std::shared_ptr<T>> condition = nullptr) {
             std::unique_lock<std::mutex> lock(mMutex);
             if (mQueue.empty()) {
+                if (condition) {
+                    auto createData = createDefault();
+                    if (condition(createData)) {
+                        return createData;
+                    }
+                };
                 return nullptr;
             }
             auto item = mQueue.front();
-            mQueue.pop_front();
-            lock.unlock(); /**如果不手动解锁， mCond.notify_one() 会唤醒等待的线程。被唤醒的线程会尝试重新获取 mMutex 锁，但此时锁仍然被当前线程持有（因为还没退出作用域），导致被唤醒的线程立即又阻塞了（Hurry up and wait）。 手动解锁 后，再发出通知，等待的线程醒来时可以直接拿到锁，从而提高并发效率。*/
-            mCond.notify_one();
-            return item;
+            if (!condition || condition(item)) {
+                mQueue.pop_front();
+                lock.unlock(); /**如果不手动解锁， mCond.notify_one() 会唤醒等待的线程。被唤醒的线程会尝试重新获取 mMutex 锁，但此时锁仍然被当前线程持有（因为还没退出作用域），导致被唤醒的线程立即又阻塞了（Hurry up and wait）。 手动解锁 后，再发出通知，等待的线程醒来时可以直接拿到锁，从而提高并发效率。*/
+                mCond.notify_one();
+                return item;
+            } else {
+                return nullptr;
+            }
         }
 
         bool empty() const {
@@ -128,6 +138,18 @@ namespace face {
         const std::deque<std::shared_ptr<T>> &data() const { return mQueue; };
 
     private:
+        template<typename U = T>
+        typename std::enable_if<std::is_default_constructible<U>::value, std::shared_ptr<U>>::type
+        createDefault() {
+            return std::make_shared<U>();
+        }
+
+        template<typename U = T>
+        typename std::enable_if<!std::is_default_constructible<U>::value, std::shared_ptr<U>>::type
+        createDefault() {
+            return nullptr;
+        }
+
         LimitPolicy mPolicy{LimitPolicy::DropWhenBusy};
         std::deque<std::shared_ptr<T>> mQueue;
         mutable std::mutex mMutex;

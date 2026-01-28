@@ -18,7 +18,7 @@ namespace face {
 
         inline bool initialized() { return mTexId > 0; };
 
-        inline GLuint get() const { return mTexId; };
+        inline GLuint getTextureId() const { return mTexId; };
 
         inline int width() { return mWidth; };
 
@@ -27,6 +27,7 @@ namespace face {
         inline bool isSameSize(int width, int height) {
             return mWidth == width && mHeight == height;
         };
+
     private:
         GLuint mTexId{0};
         int    mWidth{0};

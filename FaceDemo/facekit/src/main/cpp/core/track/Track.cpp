@@ -19,10 +19,13 @@ namespace face {
         if (!clip || !clip->isValid()) {
             return 0;
         }
+        if (!mEndClip || clip->getEnd() > mEndClip->getEnd()) {
+            mEndClip = clip;
+        }
         mClips.push_back(clip);
         int size = mClips.size();
         if (!mThread) {
-            mThread = std::make_shared<LoopThread>();
+            mThread = std::make_shared<LoopThread>("Track");
             mThread->setLoopMode(LoopMode::REQUEST);
             std::weak_ptr<Track> weakPtr(shared_from_this());
             mThread->setOnLoopListener([weakPtr] (uint64_t requestId) -> void {
@@ -43,6 +46,15 @@ namespace face {
             mThread->start();
         }
         return size;
+    }
+
+    std::shared_ptr <Clip> Track::getEndClip() {
+        return mEndClip;
+    }
+
+    uint64_t Track::getEnd() {
+        auto clip = mEndClip;
+        return clip? clip->getEnd(): 0;
     }
 
     void Track::removeClip(uint32_t clipIndex) {

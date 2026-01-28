@@ -21,11 +21,12 @@ namespace face {
     class Timeline;
     class EGLSurfaceView;
     class TextureRender;
+    class FrameBuffer;
+
     class Composer :public std::enable_shared_from_this<Composer>{
     public:
         Composer();
         ~Composer();
-
 
         void init(std::shared_ptr<Timeline> timeline = nullptr);
         uint32_t addTrack(Rect<float> rect, std::shared_ptr<Track> track);

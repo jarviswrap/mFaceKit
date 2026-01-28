@@ -12,14 +12,13 @@ public:
     ~FrameBuffer();
 
     bool init(int width, int height);
-    bool init(int width, int height, bool depth, int texId);
+    bool init(int width, int height, bool depth);
     bool isInitialized();
 
     int getWidth();
     int getHeight();
 
     bool bind();
-    bool unbind();
 
     /**
      * 从texId画到本FBO绑定的纹理mTexId
@@ -42,20 +41,13 @@ public:
     void release();
 
 private:
-    GLuint _createTexture(int width, int height);
     GLuint _createRenderBuffer(int width, int height);
 
 private:
-    std::shared_ptr<Texture>    mTexture;
+    std::shared_ptr<Texture>    mTexture{nullptr};
     GLuint     mFbo{ 0 };
-    GLuint     mPreFbo{ 0 };
-//    GLuint     mTexId{ 0 };
     GLuint     mDepthBuffer{ 0 };
-//    int        mWidth{ 0 };
-//    int        mHeight{ 0 };
     bool       mIsInited{ false };
-    bool       mIsBinded{ false };
-    bool       mIsOuterTexture{ false };  //标记是否外部传入纹理，release时不做释放管理
     FilterRGB* mFilterRGB{ nullptr };
 };
 }  // namespace pipeline

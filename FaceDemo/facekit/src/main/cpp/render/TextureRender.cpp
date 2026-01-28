@@ -33,13 +33,14 @@ namespace face {
 
     static float VERTICES[] = {
             // positions        // texture coords
-            -1.0f,  1.0f, 0.0f,  0.0f, 0.0f, // Top-left
-            -1.0f, -1.0f, 0.0f,  0.0f, 1.0f, // Bottom-left
-             1.0f,  1.0f, 0.0f,  1.0f, 0.0f, // Top-right
-             1.0f, -1.0f, 0.0f,  1.0f, 1.0f  // Bottom-right
+            -1.0f,  1.0f, 0.0f,  0.0f, 1.0f, // Top-left
+            -1.0f, -1.0f, 0.0f,  0.0f, 0.0f, // Bottom-left
+             1.0f,  1.0f, 0.0f,  1.0f, 1.0f, // Top-right
+             1.0f, -1.0f, 0.0f,  1.0f, 0.0f  // Bottom-right
     };
 
     void TextureRender::resize(int width, int height) {
+        LOGE("TextureRender::%s, %dx%d %dx%d", __FUNCTION__, mWidth, mHeight, width, height);
         mWidth = width;
         mHeight = height;
     }
@@ -52,13 +53,12 @@ namespace face {
         if (mWidth == 0 || mHeight == 0) {
             return Error::Err_InvalidSurface;
         }
-
         initGL();
-
         if (!mInitialized) {
             return Error::Err_OpenGLError;
         }
         auto& texture = data->data;
+        LOGE("TextureRender::%s, data:%p, rotation:%f, textureId:%lu", __FUNCTION__, data.get(), data->rotation, (uint32_t)texture->getTextureId());
         glUseProgram(mProgram);
         checkGlError("glUseProgram");
 
@@ -66,7 +66,7 @@ namespace face {
         checkGlError("glBindVertexArray");
 
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture->get());
+        glBindTexture(GL_TEXTURE_2D, texture->getTextureId());
         glUniform1i(mTextureLocation, 0);
 
         Matrix mvp;
@@ -123,6 +123,7 @@ namespace face {
     }
 
     void TextureRender::destroy() {
+        LOGE("TextureRender::%s, mInitialized:%d", __FUNCTION__, mInitialized);
         if (mInitialized) {
             if (mProgram) {
                 glDeleteProgram(mProgram);
@@ -144,6 +145,7 @@ namespace face {
         if (mInitialized) return;
 
         mProgram = createProgram(VERTEX_SHADER, FRAGMENT_SHADER);
+        LOGE("TextureRender::%s, mProgram:%d", __FUNCTION__, mProgram);
         if (!mProgram) {
             LOGE("TextureRender::initGL createProgram failed");
             return;

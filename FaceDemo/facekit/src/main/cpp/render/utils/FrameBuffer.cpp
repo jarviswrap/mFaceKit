@@ -10,9 +10,7 @@ namespace face
 {
 FrameBuffer::FrameBuffer()
     : mFbo(0)
-    , mPreFbo(0)
     , mIsInited(false)
-    , mIsBinded(false)
 {
 }
 
@@ -23,12 +21,12 @@ FrameBuffer::~FrameBuffer()
 
 bool FrameBuffer::init(int width, int height)
 {
-    return init(width, height, false, 0);
+    return init(width, height, false);
 }
 
-bool FrameBuffer::init(int width, int height, bool depth, int texId)
+bool FrameBuffer::init(int width, int height, bool depth)
 {
-    LOGE("[FrameBuffer] inited. width = %d, height = %d , texId: %d", width, height, texId);
+    LOGE("FrameBuffer::%s %dx%d", __FUNCTION__, width, height);
     if (width <= 0 || height <= 0)
     {
         return false;
@@ -40,8 +38,6 @@ bool FrameBuffer::init(int width, int height, bool depth, int texId)
 
     mTexture = std::make_shared<Texture>();
     mTexture->init(width, height, nullptr);
-//    mWidth    = width;
-//    mHeight   = height;
 
     GLuint values;
     glGenFramebuffers(1, &values);
@@ -54,11 +50,11 @@ bool FrameBuffer::init(int width, int height, bool depth, int texId)
 
     GLint curFbo = getCurrentFbo();
 
-    mIsOuterTexture = texId > 0;
-//    mTexId          = mIsOuterTexture ? texId : _createTexture(width, height);
-
     glBindFramebuffer(GL_FRAMEBUFFER, ( GLuint )mFbo);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mTexture->get(), 0);
+    if (!mTexture->getTextureId()) {
+        LOGE("FrameBuffer::%s failed, mTexture invalid", __FUNCTION__);
+    }
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mTexture->getTextureId(), 0);
     if (depth)
     {
         glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, mDepthBuffer);
@@ -74,49 +70,6 @@ bool FrameBuffer::init(int width, int height, bool depth, int texId)
 
     mIsInited = true;
     return mIsInited;
-}
-
-//bool FrameBuffer::attachTexture(int texId)
-//{
-//    //删除上次create的Texture
-//    if (!mIsOuterTexture && mTexId > 0)
-//    {
-//        GLuint textures = mTexId;
-//        glDeleteTextures(1, &textures);
-//    }
-//
-//    OpenGLUtils::CheckGLErrors("FrameBuffer::attachTexture");
-//
-//    mTexId = texId;
-//    bind();
-//    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texId, 0);
-//    GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-//    if (status != GL_FRAMEBUFFER_COMPLETE)
-//    {
-//        LOGE("[FrameBuffer] xxx init error. status = %d  fbo-tex(%d, %d)", status, mFbo, mTexId);
-//    }
-//    unbind();
-//    mIsOuterTexture = true;
-//    return true;
-//}
-
-GLuint FrameBuffer::_createTexture(int width, int height)
-{
-    GLuint texture_map;
-    glGenTextures(1, &texture_map);
-    glBindTexture(GL_TEXTURE_2D, texture_map);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-    GLenum format = GL_RGBA;
-    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, NULL);
-
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    return texture_map;
 }
 
 GLuint FrameBuffer::_createRenderBuffer(int width, int height)
@@ -150,29 +103,7 @@ bool FrameBuffer::bind()
         LOGE("[FrameBuffer] not init");
         return false;
     }
-    if (mIsBinded)
-    {
-        LOGE("[FrameBuffer] already binded. can not bind again");
-        return true;
-    }
-
-    mPreFbo = getCurrentFbo();
     glBindFramebuffer(GL_FRAMEBUFFER, mFbo);
-    mIsBinded = true;
-    return true;
-}
-
-bool FrameBuffer::unbind()
-{
-    if (!mIsInited || !mIsBinded)
-    {
-        LOGE("[FrameBuffer] invalid status");
-        return false;
-    }
-
-    glBindFramebuffer(GL_FRAMEBUFFER, mPreFbo);
-    mIsBinded = false;
-    mPreFbo   = 0;
     return true;
 }
 
@@ -241,10 +172,6 @@ void FrameBuffer::release()
     if (mIsInited)
     {
         mIsInited = false;
-        if (mIsBinded && mPreFbo > 0)
-        {
-            glBindFramebuffer(GL_FRAMEBUFFER, mPreFbo);
-        }
         if (mFbo != 0)
         {
             GLuint fbos = mFbo;

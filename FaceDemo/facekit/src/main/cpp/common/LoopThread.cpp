@@ -112,7 +112,7 @@ namespace face
     void LoopThread::requestLoop(uint64_t requestId) {
         if (mLoopMode.load() == LoopMode::REQUEST) {
             if (!mRunning.load()) {
-                LOGE("LoopThread::%s when thread not running, requestId:%d", __FUNCTION__, requestId);
+                LOGE("LoopThread::%s, %s when thread not running, requestId:%d", __FUNCTION__, mThreadName.c_str(), requestId);
             }
             mCurrentRequestId.store(requestId);
             mCondVar.notify_one();

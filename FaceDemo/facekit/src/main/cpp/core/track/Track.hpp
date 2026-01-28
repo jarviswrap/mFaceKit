@@ -29,8 +29,11 @@ namespace face {
 
         TrackType getType() const { return mType; }
 
+        std::shared_ptr<Clip> getEndClip();
+        uint64_t getEnd();
     protected:
         TrackType mType{TrackType::Video};
+        std::shared_ptr<Clip> mEndClip;
         std::vector<std::shared_ptr<Clip>> mClips;
         std::shared_ptr<LoopThread> mThread;
         std::mutex mMutex;

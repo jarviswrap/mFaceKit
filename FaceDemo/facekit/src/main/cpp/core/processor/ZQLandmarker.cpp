@@ -7,6 +7,7 @@
 #include "MNN/ImageProcess.hpp"
 #include "MNN/Interpreter.hpp"
 #include "MNN/Tensor.hpp"
+#include <sstream>
 
 namespace face {
     ZQLandmarker::ZQLandmarker(const std::string &modelPath) {
@@ -93,11 +94,11 @@ namespace face {
             }
             
             // Log first 10 points
-//            std::string log_msg = "ZQ Points: ";
-//            for (int i = 0; i < 10 && i < bbox.keypoints.size(); ++i) {
-//                log_msg += "[" + std::to_string(bbox.keypoints[i].x) + "," + std::to_string(bbox.keypoints[i].y) + "] ";
-//            }
-//            LOGE("%s", log_msg.c_str());
+            std::stringstream log_msg("ZQ Points: ");
+            for (int i = 0; i < 10 && i < bbox.keypoints.size(); ++i) {
+                log_msg<<"[" << bbox.keypoints[i].x << "," << bbox.keypoints[i].y << "] ";
+            }
+            LOGE("%s", log_msg.str().c_str());
         }
         return input;
     }

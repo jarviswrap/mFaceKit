@@ -13,8 +13,10 @@
 #include "core/Composer.hpp"
 #include "core/track/VideoTrack.hpp"
 #include "core/clip/VideoClip.hpp"
+#include "core/Timeline.hpp"
 
 static std::shared_ptr<face::ImagePreviewer> sImagePreviewer = nullptr;
+static std::shared_ptr<face::Timeline> sTimeline = nullptr;
 
 //std::shared_ptr<face::FaceInference> mInference;
 extern "C" JNIEXPORT jint JNICALL
@@ -71,9 +73,14 @@ JNIEXPORT jint JNICALL
 Java_com_jarvis_facekit_FaceKit_showVideo(JNIEnv *env, jobject thiz, jint trackIndex, jstring video_path) {
     // TODO: implement showVideo()
     static std::shared_ptr<face::Composer> sComposer = nullptr;
+    if (!sTimeline) {
+        LOGE("init Timeline sTimeline:%p", sTimeline.get());
+        sTimeline = std::make_shared<face::Timeline>(true);
+    }
     if (!sComposer) {
         sComposer = std::make_shared<face::Composer>();
-        sComposer->init();
+        LOGE("init Composer sTimeline:%p", sTimeline.get());
+        sComposer->init(sTimeline);
     }
     auto track = sComposer->getTrackByIndex(trackIndex);
     if (!track || track->getType() != face::TrackType::Video) {
@@ -82,6 +89,17 @@ Java_com_jarvis_facekit_FaceKit_showVideo(JNIEnv *env, jobject thiz, jint trackI
         trackIndex = sComposer->addTrack(face::Rect<float>(0.1f *(trackSize + 1), 0.1f * (trackSize + 1), 0.5f, 0.5f), track) - 1;
     }
     auto videoTrack = std::static_pointer_cast<face::VideoTrack>(track);
-    videoTrack->addClip(std::make_shared<face::VideoClip>(face::AndroidUtils::readStringUTF(env, video_path)));
+    auto clip = std::make_shared<face::VideoClip>(face::AndroidUtils::readStringUTF(env, video_path));
+    auto end = videoTrack->getEnd();
+    clip->start(end, end + 10000); //默认10秒
+    videoTrack->addClip(clip);
     return trackIndex + 1;
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+          Java_com_jarvis_facekit_FaceKit_tick(JNIEnv *env, jobject thiz) {
+    if (sTimeline) {
+        sTimeline->tick();
+    }
 }

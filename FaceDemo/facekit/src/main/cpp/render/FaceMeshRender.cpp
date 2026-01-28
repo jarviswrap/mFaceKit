@@ -6,6 +6,7 @@
 #include "common/Log.hpp"
 #include <string>
 #include <cmath>
+#include <sstream>
 
 namespace face {
 
@@ -285,27 +286,31 @@ namespace face {
                 float radius = faceWidth * 0.35f;
                 float falloff = 1.6f;
 
-                std::string base = "uFaces";
-                glUniform1i(glGetUniformLocation(mProgram, (base + ".valid").c_str()), 1);
-                glUniform1i(glGetUniformLocation(mProgram, (base + ".leftCount").c_str()), static_cast<int>(leftPoints.size()));
-                glUniform1i(glGetUniformLocation(mProgram, (base + ".rightCount").c_str()), static_cast<int>(rightPoints.size()));
+                std::stringstream base("uFaces[");
+                base << count << "]";
+                glUniform1i(glGetUniformLocation(mProgram, (base.str() + ".valid").c_str()), 1);
+                glUniform1i(glGetUniformLocation(mProgram, (base.str() + ".leftCount").c_str()), static_cast<int>(leftPoints.size()));
+                glUniform1i(glGetUniformLocation(mProgram, (base.str() + ".rightCount").c_str()), static_cast<int>(rightPoints.size()));
                 for (int j = 0; j < static_cast<int>(leftPoints.size()); j++) {
-                    std::string lname = base + ".leftCheeks";
-                    glUniform2f(glGetUniformLocation(mProgram, lname.c_str()), leftPoints[j].first, leftPoints[j].second);
+                    std::stringstream lname(base.str());
+                    lname << ".leftCheeks[" << j << "]";
+                    glUniform2f(glGetUniformLocation(mProgram, lname.str().c_str()), leftPoints[j].first, leftPoints[j].second);
                 }
                 for (int j = 0; j < static_cast<int>(rightPoints.size()); j++) {
-                    std::string rname = base + ".rightCheeks";
-                    glUniform2f(glGetUniformLocation(mProgram, rname.c_str()), rightPoints[j].first, rightPoints[j].second);
+                    std::stringstream rname(base.str());
+                    rname << ".rightCheeks[" << j << "]";
+                    glUniform2f(glGetUniformLocation(mProgram, rname.str().c_str()), rightPoints[j].first, rightPoints[j].second);
                 }
-                glUniform2f(glGetUniformLocation(mProgram, (base + ".center").c_str()), pCenter.first, pCenter.second);
-                glUniform1f(glGetUniformLocation(mProgram, (base + ".radius").c_str()), radius);
-                glUniform1f(glGetUniformLocation(mProgram, (base + ".falloff").c_str()), falloff);
+                glUniform2f(glGetUniformLocation(mProgram, (base.str() + ".center").c_str()), pCenter.first, pCenter.second);
+                glUniform1f(glGetUniformLocation(mProgram, (base.str() + ".radius").c_str()), radius);
+                glUniform1f(glGetUniformLocation(mProgram, (base.str() + ".falloff").c_str()), falloff);
                 count++;
             }
         }
         for (int i = count; i < MAX_FACES; i++) {
-            std::string base = "uFaces";
-            glUniform1i(glGetUniformLocation(mProgram, (base + ".valid").c_str()), 0);
+            std::stringstream base("uFaces[");
+            base << i << "]";
+            glUniform1i(glGetUniformLocation(mProgram, (base.str() + ".valid").c_str()), 0);
         }
 
         glDrawElements(GL_TRIANGLES, mIndexCount, GL_UNSIGNED_INT, 0);
