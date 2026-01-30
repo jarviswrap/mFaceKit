@@ -16,7 +16,7 @@ namespace face {
             return false;
         }
         release();
-        mTexId      = OpenGLUtils::CreateTexture(w, h, data);
+        mTexId      = OpenGLUtils::createTexture(w, h, data);
         mWidth      = w;
         mHeight     = h;
         mIsOuterTex = false;
@@ -28,7 +28,7 @@ namespace face {
         mIsOuterTex = mTexId != textureId;
         if (mIsOuterTex && mTexId > 0) {
             //是外部纹理，先删除内部纹理
-            OpenGLUtils::DeleteTextures(&mTexId, 1);
+            OpenGLUtils::deleteTextures(&mTexId, 1);
         }
 
         mTexId  = textureId;
@@ -38,13 +38,12 @@ namespace face {
     }
 
     bool Texture::release() {
-
         LOGI("[FrameBuffer] Texture::release %d, size(%d, %d)", mTexId, mWidth, mHeight);
         if (mTexId == 0) {
             return false;
         }
         if (!mIsOuterTex) {
-            OpenGLUtils::DeleteTextures(&mTexId, 1);
+            OpenGLUtils::deleteTextures(&mTexId, 1);
         }
         mTexId  = 0;
         mWidth  = 0;

@@ -18,22 +18,19 @@ namespace face {
     public:
         PixelRender();
         ~PixelRender() override;
-
-        void resize(int width, int height) override;
-        Error render(const std::shared_ptr<RenderData<PixelData>> &data) override;
-        void destroy() override;
+    protected:
+        bool getDataSize(const std::shared_ptr<PixelData> &data, int &width, int &height) override;
+        Error onRender(const std::shared_ptr<face::PixelData> &data, int rotation) override;
+        void onDestroy() override;
 
     private:
         void initGL(PixelFormat format);
-        void checkGlError(const char* op);
+        void deleteProgram();
+        void deleteTextures();
         void resetTextureSwizzle(GLenum target);
-        GLuint loadShader(GLenum type, const char* shaderCode);
-        GLuint createProgram(const char* vertexSource, const char* fragmentSource);
         void updateTextures(const std::shared_ptr<PixelData>& data);
 
         bool mInitialized{false};
-        int mWidth{0};
-        int mHeight{0};
 
         // OpenGL resources
         GLuint mProgram{0};
@@ -61,18 +58,6 @@ namespace face {
         struct {
             GLint textureRGB{-1};
         } mUniformsRGB;
-
-//        std::shared_ptr<BBoxRender> mBBoxRender{nullptr};
-//        std::shared_ptr<FaceMeshRender> mFaceRender{nullptr};
-//        std::shared_ptr<DelaunayDebugRender> mDelaunayRender{nullptr};
-        // FBO for Off-screen rendering (Face Lift)
-//        GLuint mFBO{0};
-//        GLuint mFBOTexture{0};
-//        int mFBOWidth{0};
-//        int mFBOHeight{0};
-        
-//        void initFBO(int width, int height);
-//        void destroyFBO();
     };
 
 } // face

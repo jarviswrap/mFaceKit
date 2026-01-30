@@ -41,7 +41,7 @@ namespace face {
                     if (eventId == EGLEventId::SurfaceCreated) {
                         ptr->onSurfaceChanged(size.getWidth(), size.getHeight());
                     } else if (eventId == EGLEventId::SurfaceOnDestroy) {
-                            ptr->onSurfaceDestroy();
+                        ptr->onSurfaceDestroy();
                     }
                 }
             }
@@ -60,6 +60,14 @@ namespace face {
                     mSurfaceViewClass = nullptr;
                 }
             }
+        }
+    }
+
+    void EGLSurfaceView::setSurfaceListener(DataListener<uint32_t, uint32_t> listener) {
+        mSurfaceListener = listener;
+        auto environment = mEnvironment;
+        if (listener && environment && environment->isReady() && environment->getSurfaceType() == EGLSurfaceType::Window) { // 如果已经初始化好了EGL环境，则会在设置回调时默认回调一次
+            listener(environment->getEGLSurfaceWidth(), environment->getEGLSurfaceHeight());
         }
     }
 

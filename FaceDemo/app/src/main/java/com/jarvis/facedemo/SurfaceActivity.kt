@@ -12,14 +12,24 @@ import com.jarvis.facekit.utils.FileUtils
 import java.io.File
 
 import android.widget.SeekBar
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.jarvis.facekit.Log
 
 class SurfaceActivity : ComponentActivity() {
+    private val TAG = "SurfaceActivity"
     private lateinit var glSurfaceView: EGLSurfaceView
+    private lateinit var rvVideoClips: RecyclerView
+    private lateinit var videoClipAdapter: VideoClipAdapter
     private lateinit var seekBar: SeekBar
 
     private lateinit var imagePath: String
     private lateinit var image1Path: String
     private lateinit var image2Path: String
+    private var videoClipIds = ArrayList<Int>()
+
     val runnable = object : Runnable {
         override fun run() {
             imagePath = if (imagePath == image1Path) image2Path else image1Path
@@ -33,7 +43,19 @@ class SurfaceActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContentView(R.layout.activity_surface)
+        val root = findViewById<View>(android.R.id.content)
+        ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+            insets
+        }
         glSurfaceView = findViewById(R.id.gl_surface_view)
+        rvVideoClips = findViewById(R.id.rv_video_clips)
+        rvVideoClips.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        videoClipAdapter = VideoClipAdapter(videoClipIds) {
+            clipId -> selectVideo(clipId)
+        }
+        rvVideoClips.adapter = videoClipAdapter
         seekBar = findViewById(R.id.seek_bar)
 
         seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -49,8 +71,6 @@ class SurfaceActivity : ComponentActivity() {
         glSurfaceView.post {
             glSurfaceView.setFaceLift(seekBar.progress)
         }
-
-        switchImagesAuto()
         showRetinaFace()
 
         // 全屏显示
@@ -61,54 +81,30 @@ class SurfaceActivity : ComponentActivity() {
     }
 
     fun showRetinaFace() {
-        image1Path = filesDir.absolutePath + File.separator + "test_image.png"
-        image2Path = filesDir.absolutePath + File.separator + "body_face.png"
-        if (!File(image1Path).exists()) {
-            FileUtils.copyAssetResource2File(this, "test_image.png", image1Path)
-        }
-        if (!File(image2Path).exists()) {
-            FileUtils.copyAssetResource2File(this, "body_face.png", image2Path)
-        }
-        imagePath = image1Path
-        val modelPath = filesDir.absolutePath + File.separator + "retinaface.mnn"
-        if (!File(modelPath).exists()) {
-            FileUtils.copyAssetResource2File(this, "retinaface.mnn", modelPath)
-        }
-        val pfldPath = filesDir.absolutePath + File.separator + "pfld.mnn"
-        if (!File(pfldPath).exists()) {
-            FileUtils.copyAssetResource2File(this, "pfld.mnn", pfldPath)
-        }
-        val zqlPath = filesDir.absolutePath + File.separator + "zqlandmark.mnn"
-        if (!File(zqlPath).exists()) {
-            FileUtils.copyAssetResource2File(this, "zqlandmark.mnn", zqlPath)
-        }
-        val videoPath = filesDir.absolutePath + File.separator + "time.mov"
-        if (!File(videoPath).exists()) {
-            FileUtils.copyAssetResource2File(this, "time.mov", videoPath)
-        }
-        FaceKit.Instance.showVideo(-1, videoPath)
-//        FaceKit.Instance.setModelDir(modelPath)
-//        FaceKit.Instance.showImage(imagePath)
-//        glSurfaceView.postDelayed(runnable, 2000)
-    }
+        val assetFiles = arrayOf(
+            "test_image.png",
+            "body_face.png",
+            "retinaface.mnn",
+            "pfld.mnn",
+            "zqlandmark.mnn",
+            "time.mov",
+            "test_face.mp4"
+        )
 
-    fun switchImagesAuto() {
-//        image1Path = filesDir.absolutePath + File.separator + "test_image.png"
-//        image2Path = filesDir.absolutePath + File.separator + "body_face.png"
-//        if (!File(image1Path).exists()) {
-//            FileUtils.copyAssetResource2File(this, "test_image.png", image1Path)
-//        }
-//        if (!File(image2Path).exists()) {
-//            FileUtils.copyAssetResource2File(this, "body_face.png", image2Path)
-//        }
-//        imagePath = image1Path
-//        glSurfaceView.demoShowImage(imagePath)
-//        glSurfaceView.postDelayed(runnable, 2000)
+        for (fileName in assetFiles) {
+            val file = File(filesDir, fileName)
+            if (!file.exists()) {
+                FileUtils.copyAssetResource2File(this, fileName, file.absolutePath)
+            }
+        }
+
+        image1Path = File(filesDir, "test_image.png").absolutePath
+        image2Path = File(filesDir, "body_face.png").absolutePath
+        imagePath = image1Path
+
     }
 
     fun destroyImagePreview() {
-//        glSurfaceView.removeCallbacks { runnable }
-//        glSurfaceView.demoShowImage(null)
     }
 
     override fun onResume() {
@@ -126,7 +122,39 @@ class SurfaceActivity : ComponentActivity() {
         super.onDestroy()
     }
 
-    fun tick(button: View) {
-        FaceKit.Instance.tick()
+    fun addVideo(button: View) {
+        val size = videoClipIds.size
+        var videoPath = "";
+
+        Log.e(TAG, "addVideo:${videoPath}")
+        var clipId = 0
+        if (size >= 2) {
+            if (size % 2 == 0) {
+                videoPath = File(filesDir, "time.mov").absolutePath
+            } else {
+                videoPath = File(filesDir, "test_face.mp4").absolutePath
+            }
+            clipId = FaceKit.Instance.showVideoAfter(videoClipIds[size - 2], videoPath)
+        } else {
+            if (size % 2 == 1) {
+                videoPath = File(filesDir, "time.mov").absolutePath
+            } else {
+                videoPath = File(filesDir, "test_face.mp4").absolutePath
+            }
+            clipId = FaceKit.Instance.showVideo(-1, videoPath, -1, 10000)
+        }
+        videoClipIds.add(clipId)
+        videoClipAdapter.notifyItemInserted(videoClipIds.size - 1)
+        videoClipAdapter.setSelected(videoClipIds.size - 1)
+    }
+
+    fun setScaleType(button: View) {
+     
+    }
+
+    fun selectVideo(videoClipId: Int) {
+        // Implementation for selecting video will be added here
+        Log.d("SurfaceActivity", "Selected video clip id: $videoClipId")
+        FaceKit.Instance.touchVideo(videoClipId)
     }
 }

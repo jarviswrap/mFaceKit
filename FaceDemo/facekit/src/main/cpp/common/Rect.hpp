@@ -14,11 +14,40 @@ namespace face {
         Rect() = default;
         ~Rect() = default;
 
-        void set(T x, T y, T w, T h) {
-            startX = x;
-            startY  = y;
-            width   = w;
-            height = h;
+        void get(T& x, T& y, T& w, T& h) {
+            x = startX;
+            y = startY;
+            w = width;
+            h = height;
+        }
+
+        bool set(T x, T y, T w, T h) {
+            if (x != startX || y != startY || w != width || h != height) {
+                startX = x;
+                startY  = y;
+                width   = w;
+                height = h;
+                return true;
+            }
+            return false;
+        }
+
+        bool set(T w, T h) {
+            if (w != width || h != height) {
+                width = w;
+                height = h;
+                return true;
+            }
+            return false;
+        }
+
+        bool setPosition(T x, T y) {
+            if (x != startX || y != startY) {
+                startX = x;
+                startY = y;
+                return true;
+            }
+            return false;
         }
 
         bool isValid() { return width > 0 && height > 0; }

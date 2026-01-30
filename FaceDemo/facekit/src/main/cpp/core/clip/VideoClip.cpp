@@ -15,53 +15,60 @@ extern "C" {
 }
 
 namespace face {
-    bool VideoClip::render(uint64_t timeStamp) {
-        if (!mPixelRender) {
-            LOGE("VideoClip::%s, time:%llu when pixelRender null", __FUNCTION__, timeStamp);
-            return false;
-        }
-        bool hasFrame = false;
-        auto condition = [timeStamp] (const std::shared_ptr<RenderData<PixelData>>& renderData) -> bool {
-            if (!renderData) return false;
-            auto& pixelData = renderData->data;
-            if (pixelData->getTimestamp() <= timeStamp) {
-                return true;
-            } else {
-                return false;
-            }
-        };
-        while(auto data = mDataQueue->pop(condition)) {
-            LOGE("VideoClip::%s going to render pts:%llu", __FUNCTION__, data->data->getTimestamp());
-            auto res = mPixelRender->render(data);
-            mRecycleQueue->push(data);
-            hasFrame = true;
-        }
-        return hasFrame;
-    }
-
-    VideoClip::VideoClip(const std::string &videoFile): mVideoFile(videoFile), Clip(ClipType::Video) {
-        LOGE("VideoClip::%s", __FUNCTION__ );
+    VideoClip::VideoClip(const std::string &videoFile, std::shared_ptr<ComponentId> trackId): mVideoFile(videoFile), Clip(ClipType::Video, trackId) {
+        LOGE("VideoClip::%s[%d]", __FUNCTION__, mTrackId->getId() );
         auto maxSize = 6;
-        mDataQueue = std::make_shared<LimitQueue<RenderData<PixelData>>>();
+        mDataQueue = std::make_shared<LimitQueue<PixelData>>();
         mDataQueue->setLimitPolicy(LimitPolicy::WaitWhenBusy);
         mDataQueue->setMaxSize(maxSize);
 
-        mRecycleQueue = std::make_shared<LimitQueue<RenderData<PixelData>>>();
+        mRecycleQueue = std::make_shared<LimitQueue<PixelData>>();
         mRecycleQueue->setLimitPolicy(LimitPolicy::DropWhenBusy);
         mRecycleQueue->setMaxSize(maxSize);
+
+        mFrameBuffers = std::make_shared<LimitQueue<FrameBuffer>>();
+        mFrameBuffers->setLimitPolicy(LimitPolicy::DropWhenBusy);
+        mFrameBuffers->setMaxSize(4);
 
         mThread = std::make_shared<LoopThread>("VideoClip");
         mThread->setLoopMode(LoopMode::REQUEST);
     }
 
     VideoClip::~VideoClip() {
-        LOGE("VideoClip::%s", __FUNCTION__ );
+        LOGE("VideoClip::%s[%d]", __FUNCTION__, mTrackId->getId());
         mThread->setOnLoopListener(nullptr);
         mThread->stop();
     }
 
+    bool VideoClip::render(uint64_t timeStamp, const std::shared_ptr<RenderTarget>& renderTarget) {
+        if (!mPixelRender) {
+            LOGE("VideoClip::%s[%d], time:%llu when pixelRender null", __FUNCTION__, mTrackId->getId(), static_cast<unsigned long long>(timeStamp));
+            mPixelRender = std::make_shared<PixelRender>();
+        }
+        auto data = getData(timeStamp);
+        if (data && renderTarget) {
+            std::lock_guard<std::mutex> lk(mMutex);
+            if (!mOutputRender) {
+                return mPixelRender->render(data, renderTarget) == Error::None;
+            } else {
+                auto target = getCachedTarget(renderTarget);
+                mPixelRender->render(data, target);
+                for (auto& render: mEffectRenders) {
+                    auto tempTarget = getCachedTarget(renderTarget);
+                    render->render(target->getFboTexture(), tempTarget);
+                    mFrameBuffers->push(target);
+                    target = tempTarget;
+                }
+                auto res = mOutputRender->render(target->getFboTexture(), renderTarget); // 最后一个渲染器绘制到输入的renderTarget上
+                mFrameBuffers->push(target);
+                return res == Error::None;
+            }
+        }
+        return false;
+    }
+
     void VideoClip::start(uint64_t start, uint64_t end) {
-        LOGE("VideoClip::%s", __FUNCTION__ );
+        LOGE("VideoClip::%s[%d]", __FUNCTION__, mTrackId->getId());
         std::weak_ptr<VideoClip> weakPtr(shared_from_this());
         mThread->setOnStartListener([weakPtr] () {
             if (auto clip = weakPtr.lock()) {
@@ -98,15 +105,15 @@ namespace face {
     }
 
     void VideoClip::onStart() {
-        LOGE("VideoClip::onStart %s", mVideoFile.c_str());
+        LOGE("VideoClip::onStart[%d] %s", mTrackId->getId(), mVideoFile.c_str());
         av_register_all();
         int ret = 0;
         if ((ret = avformat_open_input(&mFormatCtx, mVideoFile.c_str(), nullptr, nullptr)) != 0) {
-            LOGE("VideoClip::onStart open input failed, ret:%s", av_err2str(ret));
+            LOGE("VideoClip::onStart[%d] open input failed, ret:%s", mTrackId->getId(),av_err2str(ret));
             return;
         }
         if (avformat_find_stream_info(mFormatCtx, nullptr) < 0) {
-            LOGE("VideoClip::onStart find stream info failed");
+            LOGE("VideoClip::onStart[%d] find stream info failed", mTrackId->getId());
             return;
         }
 
@@ -119,36 +126,36 @@ namespace face {
         }
 
         if (mVideoStreamIndex == -1) {
-            LOGE("VideoClip::onStart find video stream failed");
+            LOGE("VideoClip::onStart[%d] find video stream failed", mTrackId->getId());
             return;
         }
 
         AVCodecParameters* codecPar = mFormatCtx->streams[mVideoStreamIndex]->codecpar;
         mCodec = avcodec_find_decoder(codecPar->codec_id);
         if (!mCodec) {
-            LOGE("VideoClip::onStart find decoder failed");
+            LOGE("VideoClip::onStart[%d] find decoder failed", mTrackId->getId());
             return;
         }
-        LOGE("VideoClip::%s success, mCodecCtx:%p, mCodec:%p", __FUNCTION__, mCodecCtx, mCodec);
+        LOGE("VideoClip::%s[%d] success, mCodecCtx:%p, mCodec:%p", __FUNCTION__, mTrackId->getId(), mCodecCtx, mCodec);
         mCodecCtx = avcodec_alloc_context3(mCodec);
         if (!mCodecCtx) {
-            LOGE("VideoClip::onStart alloc codec context failed");
+            LOGE("VideoClip::onStart[%d] alloc codec context failed", mTrackId->getId());
             return;
         }
 
         if (avcodec_parameters_to_context(mCodecCtx, codecPar) < 0) {
-            LOGE("VideoClip::onStart parameters to context failed");
+            LOGE("VideoClip::onStart[%d] parameters to context failed", mTrackId->getId());
             return;
         }
 
         if (avcodec_open2(mCodecCtx, mCodec, nullptr) < 0) {
-            LOGE("VideoClip::onStart open codec failed");
+            LOGE("VideoClip::onStart[%d] open codec failed", mTrackId->getId());
             return;
         }
 
         mFrame = av_frame_alloc();
         mPacket = av_packet_alloc();
-        LOGE("VideoClip::%s success, mCodecCtx:%p", __FUNCTION__, mCodecCtx);
+        LOGE("VideoClip::%s[%d] success, mCodecCtx:%p", __FUNCTION__, mTrackId->getId(), mCodecCtx);
     }
 
     void VideoClip::onLoop(uint64_t timestamp) {
@@ -171,7 +178,7 @@ namespace face {
         if (mPacket->stream_index == mVideoStreamIndex) {
             ret = avcodec_send_packet(mCodecCtx, mPacket);
             if (ret < 0) {
-                LOGE("VideoClip::onLoop send packet error");
+                LOGE("VideoClip::onLoop[%d] send packet error", mTrackId->getId());
                 av_packet_unref(mPacket);
                 return;
             }
@@ -179,15 +186,14 @@ namespace face {
             while (ret >= 0) {
                 ret = avcodec_receive_frame(mCodecCtx, mFrame);
                 if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-                    LOGE("VideoClip::onLoop eof end");
+                    LOGE("VideoClip::onLoop[%d] eof end", mTrackId->getId());
                     break;
                 } else if (ret < 0) {
-                    LOGE("VideoClip::onLoop receive frame error");
+                    LOGE("VideoClip::onLoop[%d] receive frame error", mTrackId->getId());
                     break;
                 }
 
-                auto renderData = getEmptyData();
-                renderData->scaleType = ScaleType::FitCenter;
+                auto pixelData = getEmptyData();
                 int width = mCodecCtx->width;
                 int height = mCodecCtx->height;
 
@@ -198,10 +204,6 @@ namespace face {
                 }
 
                 int size = av_image_get_buffer_size(AV_PIX_FMT_YUV420P, width, height, 1);
-                auto& pixelData = renderData->data;
-                if (!pixelData) {
-                    pixelData = std::make_shared<PixelData>();
-                }
                 pixelData->allocate(size);
                 pixelData->setFormat(PixelFormat::I420P);
                 pixelData->setResolution(width, height);
@@ -217,25 +219,16 @@ namespace face {
                 int dstLinesize[4];
                 av_image_fill_arrays(dstData, dstLinesize, pixelData->getWritablePixels(), AV_PIX_FMT_YUV420P, width, height, 1);
                 sws_scale(mSwsCtx, mFrame->data, mFrame->linesize, 0, height, dstData, dstLinesize);
-//                if (pixelData->getTimestamp() < 1000) {
-//                    FILE* file = fopen("/data/data/com.jarvis.facedemo/files/test_start.yuv", "w+");
-//                    fwrite(pixelData->getPixels(), pixelData->getPixelSize(), 1, file);
-//                    fclose(file);
-//                }
-//                if (pixelData->getTimestamp() > 10070) {
-//                    FILE* file = fopen("/data/data/com.jarvis.facedemo/files/test_end.yuv", "w+");
-//                    fwrite(pixelData->getPixels(), pixelData->getPixelSize(), 1, file);
-//                    fclose(file);
-//                }
-                LOGE("VideoClip::%s onPushFrame, %dx%d, pts:%llu, clipStartAt:%llu", __FUNCTION__, width, height, pixelData->getTimestamp(), mDuration.start);
-                mDataQueue->push(renderData);
+                LOGE("VideoClip::%s[%d] onPushFrame, %dx%d, pts:%llu, clipStartAt:%llu", __FUNCTION__, mTrackId->getId(), width, height, static_cast<unsigned long long>(pixelData->getTimestamp()), static_cast<unsigned long long>(mDuration.start));
+                mDataQueue->push(pixelData);
+                onInspect(pixelData);
             }
         }
         av_packet_unref(mPacket);
     }
 
     void VideoClip::onStop() {
-        LOGE("VideoClip::onStop");
+        LOGE("VideoClip::onStop[%d]", mTrackId->getId());
         if (mSwsCtx) {
             sws_freeContext(mSwsCtx);
             mSwsCtx = nullptr;
@@ -259,19 +252,74 @@ namespace face {
         mDataQueue->clear();
     }
 
-    std::shared_ptr<RenderData<PixelData>> VideoClip::getEmptyData() {
+    std::shared_ptr<PixelData> VideoClip::getEmptyData() {
         auto result = mRecycleQueue->pop();
         if (!result) {
-            result = std::make_shared<RenderData<PixelData>>();
+            result = std::make_shared<PixelData>();
         }
         return result;
     }
 
-    void VideoClip::onSizeChanged(uint32_t width, uint32_t height) {
+    bool VideoClip::releaseRender() {
         if (mPixelRender) {
             mPixelRender->destroy();
+            mPixelRender.reset();
+            return true;
         }
-        mPixelRender = std::make_shared<PixelRender>();
-        mPixelRender->resize(width, height);
+        return false;
+    }
+
+    std::shared_ptr<PixelData> VideoClip::getData(uint64_t timeStamp) {
+        auto condition = [timeStamp] (const std::shared_ptr<PixelData>& pixelData) -> std::shared_ptr<PixelData> {
+            if (pixelData && pixelData->getTimestamp() <= timeStamp) {
+                return pixelData;
+            } else {
+                return nullptr;
+            }
+        };
+        std::shared_ptr<PixelData> data = nullptr;
+        while(auto temp = mDataQueue->pop(condition)) {
+            if (data) mRecycleQueue->push(data);
+            data = temp;
+        }
+        return data;
+    }
+
+    std::shared_ptr<FrameBuffer>
+    VideoClip::getCachedTarget(const std::shared_ptr<RenderTarget> &displayTarget) {
+        auto condition = [displayTarget] (const std::shared_ptr<FrameBuffer>& frameBuffer) -> std::shared_ptr<FrameBuffer> {
+            if (!frameBuffer) {
+                auto target = std::make_shared<FrameBuffer>();
+                displayTarget->copyTo(target);
+                return target;
+            }
+            if (frameBuffer->getWidth() != displayTarget->getWidth() || frameBuffer->getHeight() != displayTarget->getHeight()) {
+                return nullptr;
+            }
+            return frameBuffer;
+        };
+        auto target = mFrameBuffers->pop(condition);
+        if (!target) { // renderTarget已经发生变更，需要立即清理旧数据
+            mFrameBuffers->clear();
+            target = std::make_shared<FrameBuffer>();
+            displayTarget->copyTo(target);
+        }
+        return target;
+    }
+
+    void VideoClip::addRender(const std::shared_ptr<Render<face::Texture>> &render, const std::shared_ptr<Inspector<PixelData>>& inspector) {
+        std::lock_guard<std::mutex> lk(mMutex);
+        if (mOutputRender) {
+            mEffectRenders.push_back(mOutputRender);
+        }
+        mOutputRender = render;
+        if (inspector) mInspectors.push_back(inspector);
+    }
+
+    void VideoClip::onInspect(const std::shared_ptr<PixelData> &data) {
+        std::lock_guard<std::mutex> lk(mMutex);
+        for (auto& inspector: mInspectors) {
+            inspector->inspect(data);
+        }
     }
 } // face

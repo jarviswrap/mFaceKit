@@ -58,11 +58,13 @@ namespace face {
         for (auto& ticker: mTickListenerList) {
             ticker(currentTime);
         }
+        //LOGE("Timeline::%s %llu", __FUNCTION__, mCurrentTimeStamp.load());
         mCurrentTimeStamp += TICK_INTERVAL;
     }
 
     void Timeline::tick() {
         if (mThread) {
+            //LOGE("Timeline::%s %llu", __FUNCTION__, mCurrentTimeStamp.load());
             mThread->requestLoop();
         }
     }

@@ -15,6 +15,7 @@ namespace face {
     template<typename... T> using DataListener = std::function<void(const T &...)>;
     template<typename... T> using BoolListener = std::function<bool(const T &...)>;
     template<typename... T> using IntListener = std::function<int(const T &...)>;
+    template<typename T> using DataConverter = std::function<T(const T &)>;
 
     template<typename T> using DataObtainer = std::function<T(uint32_t requestCode)>;
 

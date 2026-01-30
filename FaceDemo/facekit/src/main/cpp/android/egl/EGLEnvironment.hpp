@@ -50,6 +50,8 @@ namespace face {
         bool isReady() const;
 
         void setEGLSurfaceListener(DataListener<EGLEventId, EGLSurfaceType, Size<uint16_t>> surfaceListener) { mSurfaceListener = std::move(surfaceListener); };
+
+        EGLSurfaceType getSurfaceType() const { return mSurfaceType; }
     private:
         bool mTryGLES3{false};
         EGLDisplay mDisplay{EGL_NO_DISPLAY};

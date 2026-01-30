@@ -3,6 +3,8 @@
 //
 
 #include "Track.hpp"
+#include "common/Log.hpp"
+#include <sstream>
 
 namespace face {
 
@@ -22,10 +24,13 @@ namespace face {
         if (!mEndClip || clip->getEnd() > mEndClip->getEnd()) {
             mEndClip = clip;
         }
+        if (mListener) mListener(TrackEvent::AddClip, clip);
         mClips.push_back(clip);
         int size = mClips.size();
         if (!mThread) {
-            mThread = std::make_shared<LoopThread>("Track");
+            std::stringstream trackName("Track");
+            trackName << getId();
+            mThread = std::make_shared<LoopThread>(trackName.str());
             mThread->setLoopMode(LoopMode::REQUEST);
             std::weak_ptr<Track> weakPtr(shared_from_this());
             mThread->setOnLoopListener([weakPtr] (uint64_t requestId) -> void {
@@ -63,6 +68,7 @@ namespace face {
         if (clipIndex >= size) {
             return;
         }
+        if (mListener) mListener(TrackEvent::RemoveClip, mClips[clipIndex]);
         mClips.erase(mClips.begin() + clipIndex);
         if (mClips.size() == 0 && mThread) {
             mThread->stop();
@@ -85,6 +91,7 @@ namespace face {
     }
 
     bool Track::requestRender(uint64_t timestamp) {
+        LOGE("Track::%s %llu, trackId:%d", __FUNCTION__, static_cast<unsigned long long>(timestamp), getId());
         auto thread = mThread;
         if (thread) {
             thread->requestLoop(timestamp);
@@ -93,8 +100,8 @@ namespace face {
         return false;
     }
 
-    void Track::onRender(std::shared_ptr<Clip> clip, uint64_t timeStamp) {
-        clip->render(timeStamp);
+    void Track::setListener(DataListener <face::TrackEvent, std::shared_ptr<face::Clip>> listener) {
+        mListener = listener;
     }
 
 } // face

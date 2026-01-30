@@ -88,19 +88,19 @@ namespace face {
             return mQueue.size();
         }
 
-        std::shared_ptr<T> pop(BoolListener<std::shared_ptr<T>> condition = nullptr) {
+        std::shared_ptr<T> pop(DataConverter<std::shared_ptr<T>> condition = nullptr) {
             std::unique_lock<std::mutex> lock(mMutex);
             if (mQueue.empty()) {
                 if (condition) {
-                    auto createData = createDefault();
-                    if (condition(createData)) {
-                        return createData;
+                    auto data = condition(nullptr);
+                    if (data) {
+                        return data;
                     }
                 };
                 return nullptr;
             }
             auto item = mQueue.front();
-            if (!condition || condition(item)) {
+            if (!condition || condition(item)) { //如果存在condition时，只有condition返回不为空才会pop (没有condition时默认每次都pop)
                 mQueue.pop_front();
                 lock.unlock(); /**如果不手动解锁， mCond.notify_one() 会唤醒等待的线程。被唤醒的线程会尝试重新获取 mMutex 锁，但此时锁仍然被当前线程持有（因为还没退出作用域），导致被唤醒的线程立即又阻塞了（Hurry up and wait）。 手动解锁 后，再发出通知，等待的线程醒来时可以直接拿到锁，从而提高并发效率。*/
                 mCond.notify_one();

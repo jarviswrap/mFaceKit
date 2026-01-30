@@ -7,7 +7,7 @@
 #include "JNIEnvManager.hpp"
 #include "android/example/ImagePreviewer.hpp"
 #include "android/AndroidUtils.hpp"
-#include "core/processor/RetinaFace.hpp"
+#include "detect/RetinaFace.hpp"
 #include "android/egl/EGLDelegate.hpp"
 #include "android/egl/EGLSurfaceView.hpp"
 #include "core/Composer.hpp"
@@ -17,6 +17,7 @@
 
 static std::shared_ptr<face::ImagePreviewer> sImagePreviewer = nullptr;
 static std::shared_ptr<face::Timeline> sTimeline = nullptr;
+static std::shared_ptr<face::Composer> sComposer = nullptr;
 
 //std::shared_ptr<face::FaceInference> mInference;
 extern "C" JNIEXPORT jint JNICALL
@@ -70,36 +71,75 @@ Java_com_jarvis_facekit_egl_EGLSurfaceView_setFaceLiftIntensity(JNIEnv *env,
 }
 extern "C"
 JNIEXPORT jint JNICALL
-Java_com_jarvis_facekit_FaceKit_showVideo(JNIEnv *env, jobject thiz, jint trackIndex, jstring video_path) {
+Java_com_jarvis_facekit_FaceKit_showVideo(JNIEnv *env, jobject thiz, jint trackId, jstring video_path, jlong start, jlong duration) {
     // TODO: implement showVideo()
-    static std::shared_ptr<face::Composer> sComposer = nullptr;
     if (!sTimeline) {
-        LOGE("init Timeline sTimeline:%p", sTimeline.get());
         sTimeline = std::make_shared<face::Timeline>(true);
     }
     if (!sComposer) {
         sComposer = std::make_shared<face::Composer>();
-        LOGE("init Composer sTimeline:%p", sTimeline.get());
         sComposer->init(sTimeline);
     }
-    auto track = sComposer->getTrackByIndex(trackIndex);
-    if (!track || track->getType() != face::TrackType::Video) {
-        track = std::make_shared<face::VideoTrack>();
+    auto videoTrack = sComposer->getComponentById<face::VideoTrack>(trackId);
+    if (!videoTrack) { // 不存在VideoTrack时直接创建
+        videoTrack = std::make_shared<face::VideoTrack>();
         auto trackSize = sComposer->getTrackSize();
-        trackIndex = sComposer->addTrack(face::Rect<float>(0.1f *(trackSize + 1), 0.1f * (trackSize + 1), 0.5f, 0.5f), track) - 1;
+        trackId = sComposer->addTrack(face::Rect<float>(0.1f *(trackSize + 1), 0.1f * (trackSize + 1), 0.4f, 0.4f), videoTrack);
     }
-    auto videoTrack = std::static_pointer_cast<face::VideoTrack>(track);
-    auto clip = std::make_shared<face::VideoClip>(face::AndroidUtils::readStringUTF(env, video_path));
-    auto end = videoTrack->getEnd();
-    clip->start(end, end + 10000); //默认10秒
+    auto path = face::AndroidUtils::readStringUTF(env, video_path);
+    LOGE("Java_com_jarvis_facekit_FaceKit_showVideo:%s", path.c_str());
+    auto clip = std::make_shared<face::VideoClip>(path, videoTrack->getComponentId());
+    if (start == -1) { // 从该track的上一个clip结束位置开始
+//        start = videoTrack->getEnd();
+        start = sTimeline->getCurrentTime();
+    }
+    if (duration == -1) { // 默认耗时10秒
+        duration = 10000;
+    }
+    clip->start(start, start + duration); //默认10秒
     videoTrack->addClip(clip);
-    return trackIndex + 1;
+    return clip->getId();
 }
 
 extern "C"
 JNIEXPORT void JNICALL
           Java_com_jarvis_facekit_FaceKit_tick(JNIEnv *env, jobject thiz) {
-    if (sTimeline) {
+    if (sTimeline && sTimeline->isAutoTick()) {
         sTimeline->tick();
     }
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_jarvis_facekit_FaceKit_touchVideo(JNIEnv *env, jobject thiz, jint videoClipId) {
+    if (sComposer) {
+        auto videoClip = sComposer->getComponentById<face::VideoClip>(videoClipId);
+        if (videoClip) {
+            auto videoTrackId = videoClip->getTrackId();
+            sComposer->bringTrackToLast(videoTrackId);
+        }
+    }
+}
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_jarvis_facekit_FaceKit_showVideoAfter(JNIEnv *env,
+                                               jobject thiz,
+                                               jint video_id,
+                                               jstring video_path) {
+    if (sComposer) {
+        auto videoClip = sComposer->getComponentById<face::VideoClip>(video_id);
+        if (videoClip) {
+            auto videoTrackId = videoClip->getTrackId();
+            sComposer->bringTrackToLast(videoTrackId);
+            auto videoTrack = sComposer->getComponentById<face::VideoTrack>(videoTrackId);
+            auto path = face::AndroidUtils::readStringUTF(env, video_path);
+            LOGE("Java_com_jarvis_facekit_FaceKit_showVideo:%s", path.c_str());
+            auto clip = std::make_shared<face::VideoClip>(path, videoTrack->getComponentId());
+            auto startTime = videoTrack->getEnd();
+            clip->start(startTime, startTime + 10000); //默认10秒
+            videoTrack->addClip(clip);
+            return clip->getId();
+        }
+    }
+    return 0;
 }

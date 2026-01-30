@@ -37,7 +37,11 @@ public enum FaceKit {
 
     public native void showImage(String imagePath);
 
-    public native int showVideo(int trackIndex, String videoPath);
+    public native int showVideo(int trackId, String videoPath, long start, long duration);
+
+    public native int showVideoAfter(int videoId, String videoPath);
+
+    public native void touchVideo(int videoId);
 
     public native void tick();
 

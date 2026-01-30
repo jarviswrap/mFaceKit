@@ -10,18 +10,14 @@
 #include <memory>
 namespace face {
 
-    enum class ScaleType {
-        FitXY,
-        CenterCrop,
-        FitCenter
-    };
+
 
     template <typename T>
     class RenderData {
     public:
         Rect<uint32_t> rect;
         float rotation{0};
-        ScaleType scaleType{ScaleType::FitXY};
+
         std::shared_ptr<T> data{nullptr};
     };
 

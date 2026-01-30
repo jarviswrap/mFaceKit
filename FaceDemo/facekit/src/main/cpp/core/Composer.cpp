@@ -9,7 +9,7 @@
 #include "render/TextureRender.hpp"
 #include "core/track/VideoTrack.hpp"
 #include "render/utils/OpenGLUtils.hpp"
-#include "render/utils/FrameBuffer.hpp"
+#include "render/FrameBuffer.hpp"
 #include "common/Log.hpp"
 
 namespace face {
@@ -40,19 +40,45 @@ namespace face {
         });
     }
 
-    uint32_t Composer::addTrack(Rect<float> position, std::shared_ptr<Track> track) {
+    uint32_t Composer::addTrack(Rect<float> normalizedRect, std::shared_ptr<Track> track) {
+        if (!track) return 0;
         std::lock_guard<std::mutex> lk(mMutex);
-        if (track->getType() == TrackType::Video) {
+        auto trackId = track->getId();
+        mTrackRectMap[trackId] = normalizedRect;
+        if (track->getType() == TrackType::Video && mWidth > 0 && mHeight > 0) {
             auto videoTrack = std::static_pointer_cast<VideoTrack>(track);
-            videoTrack->resize(mWidth, mHeight);
+            videoTrack->setRenderTarget(createRenderTarget(trackId));
         }
         mTrackList.push_back(track);
-        mTrackMap.emplace(std::make_pair(track, position));
-        auto size = mTrackList.size();
-        if (size == 1) {
+        auto& clipList = track->getAllClips();
+        for(auto& clip: clipList) { // 如果track中已经有clip，先将clip全部添加到mComponentMap
+            addComponent(clip);
+        }
+        std::weak_ptr<Composer> weakSelf = shared_from_this();
+        track->setListener([weakSelf](const TrackEvent& event, const std::shared_ptr<Clip>& clip) {
+            if (auto self = weakSelf.lock()) {
+                self->updateClipMap(event, clip);
+            }
+        });
+        addComponent(track);
+
+        if (mTrackList.size() == 1) {
             mTimeline->start();
         }
-        return size;
+        LOGE("Composer::%s success, trackId:%d", __FUNCTION__, trackId);
+        return trackId;
+    }
+
+    void Composer::bringTrackToLast(uint32_t trackId) {
+        std::lock_guard<std::mutex> lk(mMutex);
+        auto it = std::find_if(mTrackList.begin(), mTrackList.end(), [trackId](const std::shared_ptr<Track>& track) {
+            return track->getId() == trackId;
+        });
+        if (it != mTrackList.end()) {
+            auto track = *it;
+            mTrackList.erase(it);
+            mTrackList.push_back(track);
+        }
     }
 
     void Composer::onTick(uint64_t timeStamp) {
@@ -72,28 +98,17 @@ namespace face {
             std::weak_ptr<Composer> weakPtr(shared_from_this());
             mShowView->setSurfaceListener([weakPtr] (uint32_t width, uint32_t height) {
                 if (auto sp = weakPtr.lock()) {
+                    std::lock_guard<std::mutex> lk(sp->mMutex);
                     sp->mWidth = width;
                     sp->mHeight = height;
                     if (sp->mRender) {
                         sp->mRender->destroy();
                     }
                     sp->mRender = std::make_shared<TextureRender>();
-                    sp->mRender->resize(width, height);
                     for (auto& track: sp->mTrackList) {
                         if (track->getType() == TrackType::Video) {
-                            uint32_t w = 0;
-                            uint32_t h = 0;
-                            auto it = sp->mTrackMap.find(track); //查找获得addTrack时定义的归一化Rect
-                            if (it != sp->mTrackMap.end()) {
-                                auto rect = (*it).second;
-                                float _normalizeWidth = rect.width;
-                                float _normalizeHeight = rect.height;
-                                w = _normalizeWidth * sp->mWidth;
-                                h = _normalizeHeight * sp->mHeight;
-                            }
                             auto videoTrack = std::static_pointer_cast<VideoTrack>(track);
-
-                            videoTrack->resize(w, h);
+                            videoTrack->setRenderTarget(sp->createRenderTarget(videoTrack->getId()));
                         }
                     }
                 }
@@ -108,29 +123,17 @@ namespace face {
                             auto videoTrack = std::static_pointer_cast<VideoTrack>(track);
                             auto frameBuffer = videoTrack->getCurrentFrameBuffer();
                             if (frameBuffer) {
-                                auto renderData = std::make_shared<RenderData<Texture>>();
-                                uint32_t x = 0;
-                                uint32_t y = 0;
-                                uint32_t width = 0;
-                                uint32_t height = 0;
-                                videoTrack->getSize(width, height);
-                                auto it = sp->mTrackMap.find(track);
-                                if (it != sp->mTrackMap.end()) {
-                                    auto rect = (*it).second;
-                                    float _normalizeX = rect.startX;
-                                    float _normalizeY = rect.startY;
-                                    x = _normalizeX * sp->mWidth;
-                                    y = _normalizeY * sp->mHeight;
-                                }
-                                renderData->rect.set(x, y, width, height);
-                                renderData->scaleType = ScaleType::FitCenter;
-                                renderData->data = frameBuffer->getFboTexture();
-                                LOGE("Composer::%s renderTrace startRender Texture:%d", __FUNCTION__, renderData->data->getTextureId());
-                                sp->mRender->render(renderData);
-                                OpenGLUtils::flush();
-                                LOGE("Composer::%s renderTrace finishRender Texture:%d", __FUNCTION__, renderData->data->getTextureId());
+                                auto renderData = frameBuffer->getFboTexture();
+//                                auto& rect = renderData->rect;
+//                                sp->readNormalizedSizeByTrackId(track->getId(), rect.startX, rect.startY, rect.width, rect.height);
+//                                renderData->scaleType = ScaleType::FitCenter;
+//                                renderData->data = frameBuffer->getFboTexture();
+                                LOGE("Composer::%s renderTrace startRender Texture:%d, track:%d", __FUNCTION__, renderData->getTextureId(), track->getId());
+                                sp->mRender->render(renderData, videoTrack->getRenderTarget());
+                                OpenGLUtils::finish();
+                                //LOGE("Composer::%s renderTrace finishRender Texture:%d", __FUNCTION__, renderData->data->getTextureId());
                             } else {
-                                LOGE("Composer::%s empty FrameBuffer", __FUNCTION__ );
+                                LOGE("Composer::%s empty FrameBuffer, track:%d", __FUNCTION__, track->getId());
                             }
                         }
                     }
@@ -148,26 +151,72 @@ namespace face {
         }
     }
 
-    void Composer::updateRect(uint32_t trackIndex, Rect<float> rect) {
-        auto track = getTrackByIndex(trackIndex);
-        if (track) {
-            std::lock_guard<std::mutex> lk(mMutex);
-            auto it = mTrackMap.find(track);
-            if (it != mTrackMap.end()) {
-                it->second = rect;
-            }
+    void Composer::updateTrackRect(uint32_t
+                                    trackId,
+                                    float startXNormalized,
+                                    float startYNormalized,
+                                    float widthNormalized,
+                                    float heightNormalized
+                                    ) {
+        auto it = mTrackRectMap.find(trackId);
+        if (it != mTrackRectMap.end()) {
+            auto normalizeChecker = [] (float normalizedValue) -> bool {
+                return normalizedValue >= 0 && normalizedValue <= 1;
+            };
+            auto& rect = (*it).second;
+            rect.set(normalizeChecker(startXNormalized)? startXNormalized: rect.startX,
+                     normalizeChecker(startYNormalized)? startYNormalized: rect.startY,
+                     normalizeChecker(widthNormalized)? widthNormalized: rect.width,
+                     normalizeChecker(heightNormalized)? heightNormalized: rect.height);
         }
-    }
-
-    std::shared_ptr<Track> Composer::getTrackByIndex(uint32_t trackIndex) {
-        std::lock_guard<std::mutex> lk(mMutex);
-        auto size = mTrackList.size();
-        if (trackIndex >= size) return nullptr;
-        return mTrackList[trackIndex];
     }
 
     uint32_t Composer::getTrackSize() {
         return mTrackList.size();
+    }
+
+    std::shared_ptr<RenderTarget> Composer::createRenderTarget(uint32_t trackId) {
+        auto surfaceWidth = mWidth;
+        auto surfaceHeight = mHeight;
+        if (surfaceWidth == 0 || surfaceHeight == 0) return nullptr;
+        auto it = mTrackRectMap.find(trackId); //查找获得addTrack时定义的归一化Rect
+        if (it != mTrackRectMap.end()) {
+            auto rect = (*it).second;
+            float _normalizeX = rect.startX;
+            float _normalizeY = rect.startY;
+            float _normalizeWidth = rect.width;
+            float _normalizeHeight = rect.height;
+            int x = _normalizeX * surfaceWidth;
+            int y = _normalizeY * surfaceHeight;
+            int w = _normalizeWidth * surfaceWidth;
+            int h = _normalizeHeight * surfaceHeight;
+            LOGE("Composer::%s success, surface[%dx%d], track[%d][%d,%d,%d,%d]", __FUNCTION__, surfaceWidth, surfaceHeight, trackId, x, y, w, h);
+            return std::make_shared<RenderTarget>(x, y, w, h);
+        }
+        return nullptr;
+    }
+
+    void
+    Composer::updateClipMap(const face::TrackEvent &event, const std::shared_ptr <face::Clip> &clip) {
+        switch (event) {
+            case TrackEvent::AddClip: addComponent(clip); break;
+            case TrackEvent::RemoveClip: removeComponent(clip); break;
+            default: break;
+        }
+    }
+
+    void Composer::addComponent(const std::shared_ptr <face::Component> &component) {
+        std::lock_guard<std::mutex> lk(mComponentMutex);
+        if (!component) return;
+        mComponentMap[component->getId()] = component;
+        LOGE("Composer::%s success, type:%d, id:%d", __FUNCTION__, component->getType(), component->getId());
+    }
+
+    void Composer::removeComponent(const std::shared_ptr <face::Component> &component) {
+        std::lock_guard<std::mutex> lk(mComponentMutex);
+        if (!component) return;
+        mComponentMap.erase(component->getId());
+        LOGE("Composer::%s success, type:%d, id:%d", __FUNCTION__, component->getType(), component->getId());
     }
 
 } // face

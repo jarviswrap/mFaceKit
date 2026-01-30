@@ -24,6 +24,7 @@ namespace face {
         uint64_t getCurrentTime() { return mCurrentTimeStamp.load(); };
         int32_t addTickListener(DataListener<uint64_t> tickListener);
         void removeTickListener(int32_t index);
+        bool isAutoTick() const { return mAutoTick; }
     private:
         bool mAutoTick{true};
         static constexpr uint64_t TICK_INTERVAL = 40;

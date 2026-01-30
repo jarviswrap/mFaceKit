@@ -4,28 +4,22 @@
 
 #ifndef FACEDEMO_TEXTURERENDER_HPP
 #define FACEDEMO_TEXTURERENDER_HPP
-//#include "common/RenderData.hpp"
 #include "render/Render.hpp"
+#include "Texture.hpp"
 #include <GLES3/gl3.h>
 
 namespace face {
 
-    class Texture;
     class TextureRender : public Render<Texture> {
     public:
-        void resize(int width, int height) override;
-        Error render(const std::shared_ptr<RenderData<Texture>> &data) override;
-        void destroy() override;
+        Error onRender(const std::shared_ptr<Texture> &data, int rotation) override;
+        void onDestroy() override;
+        bool getDataSize(const std::shared_ptr<face::Texture> &data, int &width, int &height) override;
 
     private:
         void initGL();
-        GLuint createProgram(const char* vertexSource, const char* fragmentSource);
-        GLuint loadShader(GLenum type, const char* shaderCode);
-        void checkGlError(const char* op);
 
         bool mInitialized{false};
-        int mWidth{0};
-        int mHeight{0};
 
         GLuint mProgram{0};
         GLuint mVAO{0};

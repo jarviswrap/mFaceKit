@@ -3,6 +3,7 @@
 //
 
 #include "PixelRender.hpp"
+#include "render/utils/OpenGLUtils.hpp"
 #include "common/Log.hpp"
 #include <vector>
 #include <string.h>
@@ -77,22 +78,25 @@ namespace face {
 
     PixelRender::~PixelRender() { destroy(); }
 
-    void PixelRender::destroy() {
+    void PixelRender::onDestroy() {
         LOGE("PixelRender::%s mInitialized:%d", __FUNCTION__, mInitialized);
         if (mInitialized) {
             if (mVBO) glDeleteBuffers(1, &mVBO);
             if (mVAO) glDeleteVertexArrays(1, &mVAO);
-            if (mTextureCount > 0) glDeleteTextures(mTextureCount, mTextures);
-            mTextureCount = 0;
-            if (mProgram) glDeleteProgram(mProgram);
+            deleteTextures();
+            deleteProgram();
             mInitialized = false;
         }
     }
 
-    void PixelRender::resize(int width, int height) {
-        mWidth = width;
-        mHeight = height;
-        glViewport(0, 0, width, height);
+    bool PixelRender::getDataSize(const std::shared_ptr<PixelData> &data, int &width, int &height) {
+        if (data) {
+            auto resolution = data->getResolution();\
+            width = resolution.getWidth();
+            height = resolution.getHeight();
+            return true;
+        }
+        return false;
     }
 
     void PixelRender::initGL(PixelFormat format) {
@@ -118,17 +122,8 @@ namespace face {
         if (mProgram != 0 && mPixelFormat == format) {
             return;
         }
-        if (mProgram != 0) {
-            LOGE("PixelRender::%s delete oldProgram:%d", __FUNCTION__, mProgram);
-            glDeleteProgram(mProgram);
-            mProgram = 0;
-        }
-
-        if (mTextureCount > 0) {
-            glDeleteTextures(mTextureCount, mTextures);
-            memset(mTextures, 0, sizeof(mTextures));
-            mTextureCount = 0;
-        }
+        deleteProgram();
+        deleteTextures();
 
         int neededTextures = 1;
         if (format == PixelFormat::I420P) neededTextures = 3;
@@ -150,14 +145,14 @@ namespace face {
         mPixelFormat = format;
         switch (format) {
             case PixelFormat::I420P:
-                mProgram = createProgram(VERTEX_SHADER, FRAGMENT_SHADER_I420);
+                mProgram = OpenGLUtils::loadProgram(VERTEX_SHADER, FRAGMENT_SHADER_I420);
                 mUniformsI420.textureY = glGetUniformLocation(mProgram, "yTexture");
                 mUniformsI420.textureU = glGetUniformLocation(mProgram, "uTexture");
                 mUniformsI420.textureV = glGetUniformLocation(mProgram, "vTexture");
                 LOGE("PixelRender::%s mProgram:%d UniformLocation{yTexture:%d, uTexture:%d, vTexture:%d}", __FUNCTION__, mProgram, mUniformsI420.textureY, mUniformsI420.textureU, mUniformsI420.textureV);
                 break;
             case PixelFormat::NV21:
-                mProgram = createProgram(VERTEX_SHADER, FRAGMENT_SHADER_NV21);
+                mProgram = OpenGLUtils::loadProgram(VERTEX_SHADER, FRAGMENT_SHADER_NV21);
                 mUniformsNV21.textureY = glGetUniformLocation(mProgram, "yTexture");
                 mUniformsNV21.textureUV = glGetUniformLocation(mProgram, "uvTexture");
                 LOGE("PixelRender::%s mProgram:%d UniformLocation{yTexture:%d, uvTexture:%d}", __FUNCTION__, mProgram, mUniformsI420.textureY, mUniformsNV21.textureUV);
@@ -166,7 +161,7 @@ namespace face {
             case PixelFormat::BGR:
             case PixelFormat::RGBA:
             case PixelFormat::ARGB:
-                mProgram = createProgram(VERTEX_SHADER, FRAGMENT_SHADER_RGB);
+                mProgram = OpenGLUtils::loadProgram(VERTEX_SHADER, FRAGMENT_SHADER_RGB);
                 mUniformsRGB.textureRGB = glGetUniformLocation(mProgram, "rgbTexture");
                 LOGE("PixelRender::%s mProgram:%d UniformLocation{rgbTexture:%d}", __FUNCTION__, mProgram, mUniformsRGB.textureRGB);
                 break;
@@ -176,60 +171,14 @@ namespace face {
         }
     }
 
-    Error PixelRender::render(const std::shared_ptr<RenderData<PixelData>> &data) {
-        if (!data || !data->data) {
-            LOGE("PixelRender::%s data[%p] invalid", __FUNCTION__, data.get());
+    Error PixelRender::onRender(const std::shared_ptr<PixelData> &pixelData, int rotation) {
+        if (!pixelData || !pixelData->getPixels()) {
+            LOGE("PixelRender::%s data[%p] invalid", __FUNCTION__, pixelData.get());
             return Error::Err_InvalidInput;
         }
-        if (mWidth == 0 || mHeight == 0) {
-            LOGE("PixelRender::%s surfaceSizeError:%dx%d", __FUNCTION__, mWidth, mHeight);
-            return Error::Err_InvalidSurface;
-        }
-
-        auto pixelData = data->data;
         initGL(pixelData->getFormat());
-        auto imageWidth = pixelData->getResolution().getWidth();
-        auto imageHeight = pixelData->getResolution().getHeight();
-        auto scaleType = data->scaleType;
-        auto vw = mWidth;
-        auto vh = mHeight;
-        auto x = 0;
-        auto y = 0;
-
-        float viewAspect = (float)mWidth / mHeight;
-        float imageAspect = (float)imageWidth / imageHeight;
-
-        if (scaleType == ScaleType::FitCenter) {
-             if (imageAspect > viewAspect) {
-                 // Image is wider, fit width, black bars top/bottom
-                 // vw = mWidth;
-                 vh = (int)(mWidth / imageAspect);
-                 y = (mHeight - vh) / 2;
-             } else {
-                 // Image is taller, fit height, black bars left/right
-                 // vh = mHeight;
-                 vw = (int)(mHeight * imageAspect);
-                 x = (mWidth - vw) / 2;
-             }
-        } else if (scaleType == ScaleType::CenterCrop) {
-             if (imageAspect > viewAspect) {
-                 // Image is wider, crop width -> fill height
-                 // vh = mHeight;
-                 vw = (int)(mHeight * imageAspect);
-                 x = (mWidth - vw) / 2; // x will be negative
-             } else {
-                 // Image is taller, crop height -> fill width
-                 // vw = mWidth;
-                 vh = (int)(mWidth / imageAspect);
-                 y = (mHeight - vh) / 2; // y will be negative
-             }
-        }
-        //FitXY: use full mWidth, mHeight (default)
-
-        glViewport(x, y, vw, vh);
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
-
         if (mProgram) {
             updateTextures(pixelData);
             glBindVertexArray(mVAO);
@@ -343,70 +292,20 @@ namespace face {
         glTexParameteri(target, GL_TEXTURE_SWIZZLE_A, GL_ALPHA);
     }
 
-    void PixelRender::checkGlError(const char* op) {
-        for (GLint error = glGetError(); error; error = glGetError()) {
-            LOGE("after %s() glError (0x%x)\n", op, error);
+    void PixelRender::deleteProgram() {
+        if (mProgram != 0) {
+            LOGE("PixelRender::%s delete oldProgram:%d", __FUNCTION__, mProgram);
+            glDeleteProgram(mProgram);
+            mProgram = 0;
         }
     }
 
-    GLuint PixelRender::loadShader(GLenum type, const char* shaderCode) {
-        GLuint shader = glCreateShader(type);
-        if (shader == 0) {
-            return 0;
+    void PixelRender::deleteTextures() {
+        if (mTextureCount > 0) {
+            glDeleteTextures(mTextureCount, mTextures);
+            memset(mTextures, 0, sizeof(mTextures));
+            mTextureCount = 0;
         }
-        glShaderSource(shader, 1, &shaderCode, nullptr);
-        glCompileShader(shader);
-        GLint compiled;
-        glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
-        if (!compiled) {
-            GLint infoLen = 0;
-            glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLen);
-            if (infoLen > 1) {
-                char* infoLog = (char*)malloc(sizeof(char) * infoLen);
-                glGetShaderInfoLog(shader, infoLen, nullptr, infoLog);
-                LOGE("Error compiling shader:\n%s\n", infoLog);
-                free(infoLog);
-            }
-            glDeleteShader(shader);
-            return 0;
-        }
-        return shader;
-    }
-
-    GLuint PixelRender::createProgram(const char* vertexSource, const char* fragmentSource) {
-        GLuint vertexShader = loadShader(GL_VERTEX_SHADER, vertexSource);
-        if (!vertexShader) {
-            return 0;
-        }
-        GLuint fragmentShader = loadShader(GL_FRAGMENT_SHADER, fragmentSource);
-        if (!fragmentShader) {
-            return 0;
-        }
-        GLuint program = glCreateProgram();
-        if (program) {
-            glAttachShader(program, vertexShader);
-            checkGlError("glAttachShader");
-            glAttachShader(program, fragmentShader);
-            checkGlError("glAttachShader");
-            glLinkProgram(program);
-            GLint linkStatus;
-            glGetProgramiv(program, GL_LINK_STATUS, &linkStatus);
-            if (!linkStatus) {
-                GLint infoLen = 0;
-                glGetProgramiv(program, GL_INFO_LOG_LENGTH, &infoLen);
-                if (infoLen > 1) {
-                    char* infoLog = (char*)malloc(sizeof(char) * infoLen);
-                    glGetProgramInfoLog(program, infoLen, nullptr, infoLog);
-                    LOGE("Error linking program:\n%s\n", infoLog);
-                    free(infoLog);
-                }
-                glDeleteProgram(program);
-                program = 0;
-            }
-        }
-        glDeleteShader(vertexShader);
-        glDeleteShader(fragmentShader);
-        return program;
     }
 
 } // face

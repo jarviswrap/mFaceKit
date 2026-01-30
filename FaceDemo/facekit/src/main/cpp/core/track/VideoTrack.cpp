@@ -5,7 +5,7 @@
 #include "VideoTrack.hpp"
 #include "android/egl/EGLDelegate.hpp"
 #include "android/egl/EGLEnvironment.hpp"
-#include "render/utils/FrameBuffer.hpp"
+#include "render/FrameBuffer.hpp"
 #include "render/utils/OpenGLUtils.hpp"
 #include "core/clip/VideoClip.hpp"
 #include "common/Log.hpp"
@@ -13,7 +13,7 @@
 namespace face {
 
     VideoTrack::VideoTrack(): Track(TrackType::Video) {
-        size_t maxSize = 5;
+        size_t maxSize = 2;
         mDataQueue = std::make_shared<LimitQueue<FrameBuffer>>();
         mDataQueue->setLimitPolicy(LimitPolicy::WaitWhenBusy);
         mDataQueue->setMaxSize(maxSize);
@@ -25,49 +25,38 @@ namespace face {
 
     void VideoTrack::onRender(std::shared_ptr<face::Clip> clip, uint64_t timeStamp) {
         if (!clip) {
-//            LOGE("VideoTrack::%s no clip, timeStamp:%llu", __FUNCTION__, timeStamp);
+            LOGE("VideoTrack::%s[%d] no Clip", __FUNCTION__, getId());
             return;
         }
-        if (initRenderEnv()) {
-            if (mSizeChanged) {
-                mDataQueue->clear();
-                mRecycleQueue->clear();
+        auto renderTarget = mRenderTarget;
+        if (renderTarget && initRenderEnv()) {
+            auto width = renderTarget->getWidth();
+            auto height = renderTarget->getHeight();
+            auto condition = [timeStamp, clip, width, height] (const std::shared_ptr<FrameBuffer>& frameBuffer) -> std::shared_ptr<FrameBuffer> {
+                auto localBuffer = frameBuffer;
+                if (!localBuffer)  {
+                    localBuffer = std::make_shared<FrameBuffer>();
+                    localBuffer->init(width, height);
+                    localBuffer->setScaleType(ScaleType::FitCenter);
+                };
 
-                uint32_t width = 0;
-                uint32_t height = 0;
-                mTrackSize.getSize(width, height);
-                LOGE("VideoTrack::%s %dx%d", __FUNCTION__, width, height);
-                for(auto& c: mClips) {
-                    if (clip->getClipType() == ClipType::Video) {
-                        auto videoClip = std::static_pointer_cast<VideoClip>(c);
-                        videoClip->onSizeChanged(width, height);
-                    }
+                LOGE("VideoTrack::%s renderTrace start render to textureId:%d, timeStamp:%llu", __FUNCTION__, localBuffer->getFboTexture()->getTextureId(), static_cast<unsigned long long>(timeStamp));
+                if (clip->render(timeStamp, localBuffer)) {
+                    return localBuffer;
                 }
-                mSizeChanged = false;
-            }
-
-            auto size = mTrackSize;
-            auto condition = [timeStamp, clip, size] (const std::shared_ptr<FrameBuffer>& frameBuffer) -> bool {
-                if (!frameBuffer) return false;
-                if (!frameBuffer->isInitialized()) {
-                    uint32_t width = 0;
-                    uint32_t height = 0;
-                    size.getSize(width, height);
-                    frameBuffer->init(width, height);
-                }
-                frameBuffer->bind();
-                LOGE("VideoTrack::%s renderTrace start render to textureId:%d, timeStamp:%llu", __FUNCTION__, frameBuffer->getFboTexture()->getTextureId(), timeStamp);
-                return clip->render(timeStamp);
+                return nullptr;
             };
 
-            auto result = mRecycleQueue->pop(condition);
+            auto result = mRecycleQueue->pop(condition); // clip->render成功才会从RecycleQueue移出数据
             if (result) {
-                LOGE("VideoTrack::%s renderTrace clipRendered to textureId:%d, timeStamp:%llu success", __FUNCTION__, result->getFboTexture()->getTextureId(), timeStamp);
-                OpenGLUtils::flush();
+                LOGE("VideoTrack::%s[%d] renderTrace clipRendered to textureId:%d, timeStamp:%llu success", __FUNCTION__, getId(), result->getFboTexture()->getTextureId(), static_cast<unsigned long long>(timeStamp));
+                OpenGLUtils::finish();
                 mDataQueue->push(result);
             } else {
-                LOGE("VideoTrack::%s renderTrace timeStamp:%llu failed", __FUNCTION__, timeStamp);
+                LOGE("VideoTrack::%s[%d] renderTrace timeStamp:%llu failed", __FUNCTION__, getId(), static_cast<unsigned long long>(timeStamp));
             }
+        } else {
+            LOGE("VideoTrack::%s[%d] initRenderEnv failed", __FUNCTION__, getId());
         }
     }
 
@@ -98,18 +87,6 @@ namespace face {
         return true;
     }
 
-    std::shared_ptr <FrameBuffer> VideoTrack::getEmptyFrameBuffer() {
-        auto result = mRecycleQueue->pop();
-        if (!result) {
-            result = std::make_shared<FrameBuffer>();
-            uint32_t width = 0;
-            uint32_t height = 0;
-            mTrackSize.getSize(width, height);
-            result->init(width, height);
-        }
-        return result;
-    }
-
     void VideoTrack::recycleFrameBuffer(std::shared_ptr <FrameBuffer> &&frameBuffer) {
         mRecycleQueue->push(frameBuffer);
     }
@@ -125,11 +102,10 @@ namespace face {
         return mCurrentFrameBuffer;
     }
 
-    void VideoTrack::resize(uint32_t width, uint32_t height) {
-        if (mTrackSize.setSize(width, height)) {
-            LOGE("VideoTrack::%s sizeChanged: %dx%d", __FUNCTION__, width, height);
-            mSizeChanged = true;
-        }
+    void VideoTrack::setRenderTarget(const std::shared_ptr<face::RenderTarget> &renderTarget) {
+        mRenderTarget = renderTarget;
+        mDataQueue->clear();
+        mRecycleQueue->clear();
     }
 
 } // face

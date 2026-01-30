@@ -12,15 +12,15 @@ class OpenGLUtils
 public:
     static GLuint loadProgram(const char* vShaderStr, const char* fShaderStr);
     static GLuint loadShader(GLenum type, const char* shaderSrc);
-    static bool   CreateTextures(GLuint* textures, int num, int width, int height, bool isYuv);
-    static void   DeleteTextures(GLuint* textures, int num);
-    static void   YuvDataToTextures(uint8_t* yuvData, int width, int height, GLuint* textures);
+    static bool   createTextures(GLuint* textures, int num, int width, int height, bool isYuv);
+    static void   deleteTextures(GLuint* textures, int num);
+    static void   yuvDataToTextures(uint8_t* yuvData, int width, int height, GLuint* textures);
 
-    static GLuint CreateTexture(int width, int height, const uint8_t* data);
+    static GLuint createTexture(int width, int height, const uint8_t* data);
 
-    static void ClearGLState();
+    static void clearGLState();
 
-    static void CheckGLErrors(const char* tag);
+    static void checkGLErrors(const char* tag);
 
 #ifdef __ANDROID__
     static GLuint createOESTextureID();

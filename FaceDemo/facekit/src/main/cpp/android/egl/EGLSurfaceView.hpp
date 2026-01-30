@@ -19,7 +19,7 @@ namespace face {
 
         void initEnvironment(std::shared_ptr<EGLEnvironment> environment);
 
-        void setSurfaceListener(DataListener<uint32_t, uint32_t> listener) { mSurfaceListener = listener; }
+        void setSurfaceListener(DataListener<uint32_t, uint32_t> listener);
         void setDrawListener(DataListener<> listener) { mDrawListener = listener; }
         void setSurfaceDestroyListener(DataListener<> listener) { mSurfaceDestroyListener = listener; }
 

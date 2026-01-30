@@ -1,24 +1,26 @@
 #pragma once
 #include "render/utils/GLType.hpp"
+#include "render/RenderTarget.hpp"
+
 #include <memory>
 namespace face
 {
 class FilterRGB;
 class Texture;
-class FrameBuffer
-{
+class FrameBuffer: public RenderTarget{
 public:
     FrameBuffer();
     ~FrameBuffer();
 
-    bool init(int width, int height);
+    bool init(int width, int height) override;
+    int getWidth() override;
+    int getHeight() override;
+    bool bind() override;
+    void release() override;
+
     bool init(int width, int height, bool depth);
     bool isInitialized();
 
-    int getWidth();
-    int getHeight();
-
-    bool bind();
 
     /**
      * 从texId画到本FBO绑定的纹理mTexId
@@ -37,9 +39,6 @@ public:
     GLint  getCurrentFbo();
     GLuint getFboId();
     std::shared_ptr<Texture> getFboTexture() const { return mTexture; };
-
-    void release();
-
 private:
     GLuint _createRenderBuffer(int width, int height);
 
